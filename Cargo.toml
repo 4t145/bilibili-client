@@ -22,3 +22,7 @@ features = ["derive"]
 
 [dependencies.regex]
 version = "1.5.4"
+
+
+[dependencies]
+rand = "0.8.5"

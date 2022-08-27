@@ -17,9 +17,9 @@ pub trait TraitApi {
 
 pub trait JsonApi {
     type Request: serde::Serialize;
+    type Response: for<'de> serde::Deserialize<'de>;
     const METHOD: reqwest::Method;
     const URL: &'static str;
-    type Response: for<'de> serde::Deserialize<'de>;
 }
 
 fn make_request<Api: JsonApi>(req: &Api::Request) -> Request {
