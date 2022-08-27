@@ -1,6 +1,5 @@
-pub(crate) const BASE_URL: &'static str = "https://passport.bilibili.com/qrcode";
-use reqwest::{Request, Url, RequestBuilder, Method, Body};
-use crate::api_trait::JsonApi;
+use reqwest::Method;
+use crate::api_trait::Api;
 
 pub struct GetLoginUrl;
 
@@ -19,7 +18,7 @@ pub struct GetLoginUrlRespData {
     pub oauth_key: String
 }
 
-impl JsonApi for GetLoginUrl {
+impl Api for GetLoginUrl {
     type Request = ();
     type Response = GetLoginUrlResp;
     const METHOD: Method = Method::GET;
@@ -52,7 +51,7 @@ pub enum GetLoginInfoRespData {
         url: String
     }
 }
-impl JsonApi for GetLoginInfo {
+impl Api for GetLoginInfo {
     type Request = GetLoginInfoReq;
     type Response = GetLoginInfoResp;
     const METHOD: Method = Method::POST;

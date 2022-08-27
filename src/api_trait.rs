@@ -1,36 +1,33 @@
-use std::future::{Future};
-use reqwest::{Request, Url, RequestBuilder, Method, Body, Response};
-pub trait TraitApi {
-    const BASE_URL:&'static str;
-    fn path(path: &[&'static str]) -> String {
-        let size = path.iter().fold(0, |len, s| 1+len+s.len());
-        let mut url = String::with_capacity(size + Self::BASE_URL.len());
-        url.push_str(Self::BASE_URL);
-        for s in path {
-            url.push('/');
-            url.push_str(s);
-        }
-        return url;
-    }
+use reqwest::{Request, Error as HttpError, multipart::Form};
+
+
+pub enum ApiError {
+    Deser(HttpError),
+    Http(HttpError),
+    ReqForm(HttpError)
 }
 
-
-pub trait JsonApi {
+pub trait Api {
     type Request: serde::Serialize;
     type Response: for<'de> serde::Deserialize<'de>;
     const METHOD: reqwest::Method;
     const URL: &'static str;
-}
 
-fn make_request<Api: JsonApi>(req: &Api::Request) -> Request {
-    let url = Url::parse(Api::URL).unwrap();
-    let mut r = Request::new(Api::METHOD, url);
-    let json = serde_json::to_vec(req).unwrap();
-    *r.body_mut() = Some(Body::from(json));
-    r
-}
+    /// !!! **Reqbody will be EMPTY while req is not an object** !!!
+    fn form_data_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
+        let json = serde_json::json!(req);
+        let mut form = Form::new();
+        if let Some(obj) = json.as_object() {
+            for (key, val) in obj {
+                if !val.is_null() {
+                    form = form.text(key.clone(), val.to_string());
+                }
+            }
+        }
+        client.request(Self::METHOD, Self::URL).multipart(form).build().map_err(ApiError::ReqForm)
+    }
 
-pub async fn fetch<Api: JsonApi>(client:&reqwest::Client, req: Api::Request) -> Api::Response {
-    let resp = client.execute(make_request::<Api>(&req)).await;
-    resp.unwrap().json::<Api::Response>().await.unwrap()
+    fn json_req<A: Api>(client:&reqwest::Client, req: A::Request) -> Result<Request, ApiError> {
+        client.request(A::METHOD, A::URL).json(&req).build().map_err(ApiError::ReqForm)
+    }
 }

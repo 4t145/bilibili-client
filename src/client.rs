@@ -1,32 +1,71 @@
-use std::collections::HashMap;
-
 use crate::consts::*;
 use crate::passport::qrcode::*;
 use crate::api::live::send::*;
 
-use crate::api_trait::{fetch, JsonApi};
+use crate::api_trait::{Api, ApiError};
+use crate::logger::{Logger, Log, LogLevel};
+
+// macro_rules! debug {
+//     ($client:expr, $msg: expr) => {
+//         $client.logger.text(Log{
+//             content: $msg.to_owned().into(),
+//             level: LogLevel::Debug,
+//         })
+//     };
+// }
 
 
-pub struct Client {
-    http_client: reqwest::Client,
-    // cookies: HashMap<String, String>,
-    status: ClientStatus
+macro_rules! info {
+    ($client:expr, $msg: expr) => {
+        $client.logger.text(Log{
+            content: $msg.to_owned().into(),
+            level: LogLevel::Info,
+        })
+    };
 }
 
-impl Client {
-    fn new() -> Self {
+macro_rules! warn {
+    ($client:expr, $msg: expr) => {
+        $client.logger.text(Log{
+            content: $msg.to_owned().into(),
+            level: LogLevel::Warn,
+        })
+    };
+}
+
+
+pub struct Client<L: Logger> {
+    http_client: reqwest::Client,
+    // cookies: HashMap<String, String>,
+    status: ClientStatus,
+    logger: L
+}
+
+impl<L:Logger> Client<L> {
+    pub fn new(logger: L) -> Self {
         Self {
             http_client: reqwest::Client::builder().user_agent(AGENT).build().unwrap(),
             // cookies: HashMap::new(),
-            status: ClientStatus::Offline
+            status: ClientStatus::Offline,
+            logger,
         }
     }
 
     #[inline]
-    async fn fetch<Api: JsonApi>(&self, req: Api::Request) -> Api::Response {
-        fetch::<Api>(&self.http_client, req).await
+    pub async fn fd_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
+        let request = A::form_data_req(&self.http_client, req)?;
+        self.http_client.execute(request).await
+            .map_err(ApiError::Http)?
+            .json().await.map_err(ApiError::Deser)
     }
 
+    #[inline]
+    pub async fn json_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
+        let request = A::form_data_req(&self.http_client, req)?;
+        self.http_client.execute(request).await
+            .map_err(ApiError::Http)?
+            .json().await.map_err(ApiError::Deser)
+    }
 }
 
 pub enum ClientStatus {
@@ -53,8 +92,15 @@ pub struct ClientStatusOnline {
 
 impl ClientStatusOnline {
     #[inline]
-    fn make_live_send_req(&mut self, roomid: u64, msg: impl Into<String>) -> LiveSendReq {
-        self.live_send_req_generator.gen(roomid, msg.into(), self.cookies.bili_jct.clone())
+    fn make_live_send_req(&mut self, roomid: u64, msg: LiveDanmaku) -> LiveSendReq {
+        match msg {
+            LiveDanmaku::Emoticon(e) => {
+                self.live_send_req_generator.gen_emoticon(roomid, e, self.cookies.bili_jct.clone())
+            },
+            LiveDanmaku::Text(msg) => {
+                self.live_send_req_generator.gen(roomid, msg, self.cookies.bili_jct.clone())
+            },
+        }
     }
 }
 
@@ -65,32 +111,36 @@ pub struct Cookies {
     // dede_user_id: String,
     // dede_user_id_ckmd5: String
 }
-pub struct Offline {
 
+pub enum ClientError {
+    Api(ApiError),
+    Offline,
 }
 
-impl Client {
-    pub async fn login(&mut self) {
-        let client = reqwest::Client::builder().user_agent(AGENT).build().unwrap();
-        let resp = self.fetch::<GetLoginUrl>(()).await;
+impl<L:Logger> Client<L> {
+    pub async fn login(&mut self) -> Result<bool, ClientError> {
+        let resp = self.fd_req::<GetLoginUrl>(()).await.map_err(ClientError::Api)?;
         let oauth_key = resp.data.oauth_key;
         // scan qrcode...
         loop {
-            let resp = self.fetch::<GetLoginInfo>(GetLoginInfoReq {oauth_key:oauth_key.clone()}).await;
+            let resp = self.fd_req::<GetLoginInfo>(
+                GetLoginInfoReq {oauth_key:oauth_key.clone()}
+            ).await.map_err(ClientError::Api)?;
             match resp.data {
                 GetLoginInfoRespData::Code(code) => {
                     match code {
-                        -4 => {
-
+                        -2 => {
+                            warn!(self, "二维码已过期");
+                            return Ok(false);
                         }
-                        -5 => {
-
-                        }
+                        -4 => info!(self, "二维码尚未扫描"),
+                        -5 => info!(self, "二维码已扫描"),
                         _ => {}
                     }
                     tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
                 },
                 GetLoginInfoRespData::Body { url } => {
+                    self.logger.qrcode(url.as_bytes());
                     let parse = reqwest::Url::parse(&url).unwrap();
                     let mut pairs = parse.query_pairs();
                     let (_, v) = pairs.find(|(k,_)|{*k == "bili_jct"}).unwrap();
@@ -102,7 +152,8 @@ impl Client {
                             live_send_req_generator: LiveSendReqGenerator::new() 
                         }
                     );
-                    break;
+                    info!(self, "已登录成功");
+                    return Ok(true);
                 },
             }
         }
@@ -110,20 +161,12 @@ impl Client {
 }
 
 /** Live Api */
-impl Client {
+impl<L:Logger> Client<L> {
     /// send danmaku
-    pub async fn send_danmaku_to_live(&mut self, roomid: u64, msg: impl Into<String>) -> Result<(), ()> {
-        let online = self.status.map_online_mut().ok_or(())?;
-        let req = online.make_live_send_req(roomid, msg);
-        self.fetch::<LiveSend>(req).await;
-        return Ok(())
+    pub async fn send_danmaku_to_live(&mut self, roomid: u64, danmaku: LiveDanmaku) -> Result<<LiveSend as Api>::Response, ClientError> {
+        let online = self.status.map_online_mut().ok_or(ClientError::Offline)?;
+        let req = online.make_live_send_req(roomid, danmaku);
+        let resp = self.fd_req::<LiveSend>(req).await.map_err(ClientError::Api)?;
+        return Ok(resp)
     }
-    
 }
-// pub fn request_passport() {
-
-//     let url = PASSPORT_HOST_URL;
-//     url.
-//     let request = self.agent
-//             .request(method, format!("{}{}", PASSPORT_HOST_URL, path).as_str());
-// }

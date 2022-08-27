@@ -1,9 +1,14 @@
 use rand::RngCore;
-use crate::api_trait::JsonApi;
+use crate::api_trait::Api;
+use crate::api::CommonResp;
+pub enum LiveDanmaku {
+    Emoticon(String),
+    Text(String)
+}
+
 pub struct LiveSend;
 
 #[derive(serde::Serialize)]
-#[serde(rename_all = "PascalCase")]
 pub struct LiveSendReq {
     roomid: u64,
     msg: String,
@@ -11,11 +16,13 @@ pub struct LiveSendReq {
     rnd: u32,
     color: u32,
     fontsize: u8,
+    dm_type: Option<u8>
 }
 
 #[repr(u32)]
 pub enum LiveDanmakuColor {
-    White = 0xffffff
+    White = 0xffffff,
+    Purple = 0xe33fff
 }
 
 pub struct LiveSendReqGenerator {
@@ -28,9 +35,31 @@ impl LiveSendReqGenerator {
             rng: rand::thread_rng()
         }
     }
+
     pub fn gen(&mut self, roomid:u64, msg: String, bili_jct: String) -> LiveSendReq {
         let rnd = self.rng.next_u32();
-        LiveSendReq::new(bili_jct, msg, roomid, rnd)
+        LiveSendReq {
+            csrf: bili_jct,
+            msg,
+            roomid,
+            rnd,
+            color: LiveDanmakuColor::White as u32,
+            fontsize: 25,
+            dm_type: None
+        }
+    }
+
+    pub fn gen_emoticon(&mut self, roomid:u64, emoticon: String, bili_jct: String) -> LiveSendReq {
+        let rnd = self.rng.next_u32();
+        LiveSendReq {
+            csrf: bili_jct,
+            msg: emoticon,
+            roomid,
+            rnd,
+            color: LiveDanmakuColor::White as u32,
+            fontsize: 25,
+            dm_type: Some(1)
+        }
     }
 }
 
@@ -44,16 +73,14 @@ impl LiveSendReq {
             rnd,
             color: LiveDanmakuColor::White as u32,
             fontsize: 25,
+            dm_type: None
         }
     }
 }
 
-impl JsonApi for LiveSend  {
+impl Api for LiveSend  {
     type Request = LiveSendReq;
-    type Response = ();
-
+    type Response = CommonResp<()>;
     const METHOD: reqwest::Method = reqwest::Method::POST;
-
     const URL: &'static str = "https://api.live.bilibili.com/send";
-
 }
