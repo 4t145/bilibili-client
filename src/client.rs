@@ -1,18 +1,31 @@
+use std::sync::Arc;
+
 use crate::consts::*;
 use crate::passport::qrcode::*;
-use crate::api::live::send::*;
+use crate::api::live::msg::send::*;
 
 use crate::api_trait::{Api, ApiError};
 use crate::logger::{Logger, Log, LogLevel};
+use reqwest::cookie::Jar;
 
-// macro_rules! debug {
-//     ($client:expr, $msg: expr) => {
-//         $client.logger.text(Log{
-//             content: $msg.to_owned().into(),
-//             level: LogLevel::Debug,
-//         })
-//     };
-// }
+macro_rules! critical {
+    ($client:expr, $msg: expr) => {
+        $client.logger.text(Log{
+            content: $msg.to_owned().into(),
+            level: LogLevel::Critical,
+        })
+    };
+}
+
+
+macro_rules! debug {
+    ($client:expr, $msg: expr) => {
+        $client.logger.text(Log{
+            content: $msg.to_owned().into(),
+            level: LogLevel::Debug,
+        })
+    };
+}
 
 
 macro_rules! info {
@@ -36,23 +49,46 @@ macro_rules! warn {
 
 pub struct Client<L: Logger> {
     http_client: reqwest::Client,
-    // cookies: HashMap<String, String>,
     status: ClientStatus,
-    logger: L
+    // cookie_store: Arc<Jar>,
+    pub logger: L
 }
 
 impl<L:Logger> Client<L> {
     pub fn new(logger: L) -> Self {
-        Self {
-            http_client: reqwest::Client::builder().user_agent(AGENT).build().unwrap(),
-            // cookies: HashMap::new(),
+        let cookie_store = Arc::new(Jar::default());
+        let mut client = Self {
+            http_client: reqwest::Client::builder()
+            .cookie_provider(cookie_store.clone())
+            .cookie_store(true)
+            .user_agent(AGENT)
+            .build()
+            .unwrap(),
+            // cookie_store,
             status: ClientStatus::Offline,
             logger,
-        }
+        };
+        client.info("client created");
+        client.info(format!("log level {:?}", client.logger.level()).as_str());
+        client
+    }
+
+    #[inline]
+    pub fn info(&mut self, msg:&str) {
+        info!(self, msg)
+    }
+
+    pub fn warn(&mut self, msg:&str) {
+        warn!(self, msg)
+    }
+
+    pub fn debug(&mut self, msg:&str) {
+        debug!(self, msg)
     }
 
     #[inline]
     pub async fn fd_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
+        
         let request = A::form_data_req(&self.http_client, req)?;
         self.http_client.execute(request).await
             .map_err(ApiError::Http)?
@@ -62,6 +98,15 @@ impl<L:Logger> Client<L> {
     #[inline]
     pub async fn json_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
         let request = A::form_data_req(&self.http_client, req)?;
+        self.http_client.execute(request).await
+            .map_err(ApiError::Http)?
+            .json().await.map_err(ApiError::Deser)
+    }
+
+    #[inline]
+    pub async fn urlencoded_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
+        let request = A::urlencoded_req(&self.http_client, req)?;
+
         self.http_client.execute(request).await
             .map_err(ApiError::Http)?
             .json().await.map_err(ApiError::Deser)
@@ -112,6 +157,7 @@ pub struct Cookies {
     // dede_user_id_ckmd5: String
 }
 
+#[derive(Debug)]
 pub enum ClientError {
     Api(ApiError),
     Offline,
@@ -119,33 +165,43 @@ pub enum ClientError {
 
 impl<L:Logger> Client<L> {
     pub async fn login(&mut self) -> Result<bool, ClientError> {
-        let resp = self.fd_req::<GetLoginUrl>(()).await.map_err(ClientError::Api)?;
+        self.debug("START LOGIN");
+        let resp = self.urlencoded_req::<GetLoginUrl>(()).await.map_err(ClientError::Api)?;
+        self.debug("GENERATED RESP");
         let oauth_key = resp.data.oauth_key;
+        self.debug(format!("AUTHKEY = {oauth_key}").as_str());
+        self.logger.qrcode(resp.data.url.as_bytes());
         // scan qrcode...
         loop {
-            let resp = self.fd_req::<GetLoginInfo>(
+            let resp = self.urlencoded_req::<GetLoginInfo>(
                 GetLoginInfoReq {oauth_key:oauth_key.clone()}
             ).await.map_err(ClientError::Api)?;
             match resp.data {
                 GetLoginInfoRespData::Code(code) => {
                     match code {
+                        -1 => {
+                            critical!(self, "缺少oauth_key");
+                        }
                         -2 => {
                             warn!(self, "二维码已过期");
                             return Ok(false);
                         }
-                        -4 => info!(self, "二维码尚未扫描"),
+                        -4 => debug!(self, "二维码尚未扫描"),
                         -5 => info!(self, "二维码已扫描"),
-                        _ => {}
+                        other => {
+                            let msg = resp.message.unwrap_or_default();
+                            self.debug(format!("nosuch code {other}: {msg}").as_str());
+
+                        }
                     }
-                    tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                 },
                 GetLoginInfoRespData::Body { url } => {
-                    self.logger.qrcode(url.as_bytes());
                     let parse = reqwest::Url::parse(&url).unwrap();
                     let mut pairs = parse.query_pairs();
                     let (_, v) = pairs.find(|(k,_)|{*k == "bili_jct"}).unwrap();
+                    // self.cookie_store.add_cookie_str(cookie, url)
                     let bili_jct = v.to_string();
-                    // self.cookies.insert(k.to_string(), v.to_string());
                     self.status = ClientStatus::Online (
                         ClientStatusOnline {
                             cookies: Cookies { bili_jct: bili_jct.clone() },
@@ -166,7 +222,8 @@ impl<L:Logger> Client<L> {
     pub async fn send_danmaku_to_live(&mut self, roomid: u64, danmaku: LiveDanmaku) -> Result<<LiveSend as Api>::Response, ClientError> {
         let online = self.status.map_online_mut().ok_or(ClientError::Offline)?;
         let req = online.make_live_send_req(roomid, danmaku);
-        let resp = self.fd_req::<LiveSend>(req).await.map_err(ClientError::Api)?;
+        self.debug(serde_json::json!(req).to_string().as_str());
+        let resp = self.urlencoded_req::<LiveSend>(req).await.map_err(ClientError::Api)?;
         return Ok(resp)
     }
 }

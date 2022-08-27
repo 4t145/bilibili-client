@@ -2,7 +2,18 @@ use super::{Log, LogLevel};
 use qrcode::{QrCode, render::unicode};
 
 pub struct StdoutLogger {
-    level: LogLevel
+    pub level: LogLevel
+}
+impl StdoutLogger {
+    pub fn new() -> Self {
+        Self {
+            level: LogLevel::Info
+        }
+    }
+
+    pub fn set_level(&mut self, level: LogLevel) {
+        self.level = level
+    }
 }
 
 impl super::Logger for StdoutLogger {
@@ -17,7 +28,7 @@ impl super::Logger for StdoutLogger {
             //     LogLevel::Info => todo!(),
             //     LogLevel::Silent => todo!(),
             // }
-            println!("{}", log.content)
+            println!("[{}] {}", log.level, log.content)
         }
     }
 
@@ -34,5 +45,13 @@ impl super::Logger for StdoutLogger {
         println!("{:^}", sepline);
         println!("{show}");
         println!("{:^}", sepline);
+    }
+
+    fn level(&self) -> &LogLevel {
+        &self.level
+    }
+
+    fn level_mut(&mut self) -> &mut LogLevel {
+        &mut self.level
     }
 }

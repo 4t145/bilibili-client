@@ -1,6 +1,8 @@
 use rand::RngCore;
 use crate::api_trait::Api;
 use crate::api::CommonResp;
+use serde::{Serialize, Deserialize};
+
 pub enum LiveDanmaku {
     Emoticon(String),
     Text(String)
@@ -8,7 +10,7 @@ pub enum LiveDanmaku {
 
 pub struct LiveSend;
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct LiveSendReq {
     roomid: u64,
     msg: String,
@@ -16,8 +18,10 @@ pub struct LiveSendReq {
     rnd: u32,
     color: u32,
     fontsize: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
     dm_type: Option<u8>
 }
+
 
 #[repr(u32)]
 pub enum LiveDanmakuColor {
@@ -78,9 +82,17 @@ impl LiveSendReq {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum LiveSendRespData {
+    Code(i32),
+    String(String),
+    Object
+}
+
 impl Api for LiveSend  {
     type Request = LiveSendReq;
-    type Response = CommonResp<()>;
+    type Response = serde_json::Value;
     const METHOD: reqwest::Method = reqwest::Method::POST;
-    const URL: &'static str = "https://api.live.bilibili.com/send";
+    const URL: &'static str = "https://api.live.bilibili.com/msg/send";
 }

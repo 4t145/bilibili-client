@@ -4,7 +4,7 @@ use crate::api_trait::Api;
 pub struct GetLoginUrl;
 
 #[derive(serde::Deserialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct GetLoginUrlResp {
     pub code: i64,
     pub status: bool,
@@ -12,7 +12,7 @@ pub struct GetLoginUrlResp {
 }
 
 #[derive(serde::Deserialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct GetLoginUrlRespData {
     pub url: String,
     pub oauth_key: String
@@ -31,20 +31,21 @@ impl Api for GetLoginUrl {
 pub struct GetLoginInfo;
 
 #[derive(serde::Serialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct GetLoginInfoReq {
     pub oauth_key: String
 }
 
 
 #[derive(serde::Deserialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct GetLoginInfoResp {
+    pub message: Option<String>,
     pub data: GetLoginInfoRespData
 }
 
 #[derive(serde::Deserialize)]
-#[serde(untagged, rename_all = "PascalCase")]
+#[serde(untagged, rename_all = "camelCase")]
 pub enum GetLoginInfoRespData {
     Code(i8),
     Body {
