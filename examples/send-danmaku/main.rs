@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use bilibili_client::{
     Client,
     ClientConfig,
@@ -14,10 +13,8 @@ use bilibili_client::{
 
 #[tokio::main]
 async fn main() -> Result<(), ClientError>{
-    println!("[BILIBILI CLIENT]");
-    let logger = StdoutLogger::new();
     let config = ClientConfig { 
-        logger, 
+        logger: StdoutLogger::new(), 
         cookie_file: Some(Path::new("./examples/cookies.json"))
     };
     let mut client = Client::new(config)?;
