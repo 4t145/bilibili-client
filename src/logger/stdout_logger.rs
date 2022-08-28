@@ -21,13 +21,6 @@ impl super::Logger for StdoutLogger {
 
     fn log(&mut self, log: Log<Self::Log>) {
         if self.level.should_output(&log.level) {
-            // match log.level {
-            //     LogLevel::Debug => todo!(),
-            //     LogLevel::Error => todo!(),
-            //     LogLevel::Warn => todo!(),
-            //     LogLevel::Info => todo!(),
-            //     LogLevel::Silent => todo!(),
-            // }
             println!("[{}] {}", log.level, log.content)
         }
     }

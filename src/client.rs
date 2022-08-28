@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::consts::*;
@@ -6,8 +9,7 @@ use crate::api::live::msg::send::*;
 use crate::api::live::msg::LiveDanmaku;
 use crate::api::{Api, ApiError};
 use crate::logger::{Logger};
-use reqwest::cookie::Jar;
-
+use reqwest_cookie_store::CookieStoreRwLock;
 
 macro_rules! expose_logger_method {
     ($self:ident, $($method:ident),*) => {
@@ -23,28 +25,65 @@ macro_rules! expose_logger_method {
 pub struct Client<L: Logger> {
     http_client: reqwest::Client,
     status: ClientStatus,
-    // cookie_store: Arc<Jar>,
+    cookie_store: Arc<CookieStoreRwLock>,
+    cookie_file_writer: Option<BufWriter<File>>,
     pub logger: L
 }
 
+pub struct ClientConfig<'p, L: Logger> {
+    pub logger: L,
+    pub cookie_file: Option<&'p Path>
+}
+
+#[derive(Debug)]
+pub enum ClientError {
+    Api(ApiError),
+    Fs(std::io::Error),
+    CookieStore(cookie_store::Error),
+    Offline,
+    NoCookieFile
+}
+
 impl<L:Logger> Client<L> {
-    pub fn new(logger: L) -> Self {
-        let cookie_store = Arc::new(Jar::default());
-        let mut client = Self {
+    pub fn new(config: ClientConfig<L>) -> Result<Self, ClientError> {
+        use ClientError::*;
+        use std::io::{BufReader};
+        use std::fs::OpenOptions;
+        let (cookie_store, writer) = match config.cookie_file {
+            Some(path) => {
+                let reader = OpenOptions::new().create(true).write(true).read(true).open(&path).map(BufReader::new).map_err(Fs)?;
+                let s = cookie_store::CookieStore::load_json(reader).map_err(CookieStore)?;
+                let writer = OpenOptions::new().write(true).open(&path).map(BufWriter::new).map_err(Fs)?;
+                (s, Some(writer))
+            },
+            None => {
+                (cookie_store::CookieStore::default(), None)
+            },
+        };
+
+        let status = cookie_store.get("bilibili.com", "/", "bili_jct").map(|c|{
+            ClientStatus::Online(ClientStatusOnline {
+                bili_jct: c.value().into(),
+                live_send_req_generator: LiveSendReqGenerator::new(),
+            }) 
+        }).unwrap_or(ClientStatus::Offline);
+
+        let cookie_store = reqwest_cookie_store::CookieStoreRwLock::new(cookie_store);
+        let cookie_store = Arc::new(cookie_store);
+        let client = Self {
             http_client: reqwest::Client::builder()
             .cookie_provider(cookie_store.clone())
-            .cookie_store(true)
             .user_agent(AGENT)
             .build()
             .unwrap(),
-            // cookie_store,
-            status: ClientStatus::Offline,
-            logger,
+            cookie_store: cookie_store,
+            status,
+            logger:config.logger,
+            cookie_file_writer: writer,
         };
-        client.info("client created");
-        client.info(format!("log level {:?}", client.logger.level()).as_str());
-        client
+        Ok(client)
     }
+
 
     expose_logger_method!(self, critical, error, warn, info, debug);
 
@@ -53,6 +92,18 @@ impl<L:Logger> Client<L> {
             ClientStatus::Online(_) => true,
             _ => false,
         }
+    }
+
+    pub fn save_cookies(&mut self) -> Result<(), ClientError> {
+        use std::io::{Write};
+        if let Some(writer) = &mut self.cookie_file_writer {
+            {
+                let _ = &self.cookie_store.read().unwrap().save_json(writer).map_err(ClientError::CookieStore)?;
+            }
+            writer.flush().map_err(ClientError::Fs)?;
+            return Ok(())
+        }
+        Err(ClientError::NoCookieFile)
     }
 
     #[inline]
@@ -75,10 +126,8 @@ impl<L:Logger> Client<L> {
     #[inline]
     pub async fn urlencoded_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
         let request = A::urlencoded_req(&self.http_client, req)?;
-
-        self.http_client.execute(request).await
-            .map_err(ApiError::Http)?
-            .json().await.map_err(ApiError::Deser)
+        let resp = self.http_client.execute(request).await.map_err(ApiError::Http)?;
+        resp.json().await.map_err(ApiError::Deser)
     }
 }
 
@@ -100,7 +149,7 @@ impl ClientStatus {
 }
 
 struct ClientStatusOnline {
-    cookies: Cookies,
+    bili_jct: String,
     live_send_req_generator: LiveSendReqGenerator
 }
 
@@ -109,28 +158,16 @@ impl ClientStatusOnline {
     fn make_live_send_req(&mut self, roomid: u64, msg: LiveDanmaku) -> LiveSendReq {
         match msg {
             LiveDanmaku::Emoticon(e) => {
-                self.live_send_req_generator.gen_emoticon(roomid, e, self.cookies.bili_jct.clone())
+                self.live_send_req_generator.gen_emoticon(roomid, e, self.bili_jct.clone())
             },
             LiveDanmaku::Text(msg) => {
-                self.live_send_req_generator.gen(roomid, msg, self.cookies.bili_jct.clone())
+                self.live_send_req_generator.gen(roomid, msg, self.bili_jct.clone())
             },
         }
     }
 }
 
-struct Cookies {
-    bili_jct: String,
-    /* may impl later */
-    // sess_data: String,
-    // dede_user_id: String,
-    // dede_user_id_ckmd5: String
-}
 
-#[derive(Debug)]
-pub enum ClientError {
-    Api(ApiError),
-    Offline,
-}
 
 impl<L:Logger> Client<L> {
     pub async fn login(&mut self) -> Result<bool, ClientError> {
@@ -159,7 +196,7 @@ impl<L:Logger> Client<L> {
                         -5 => self.info("二维码已扫描"),
                         other => {
                             let msg = resp.message.unwrap_or_default();
-                            self.debug(format!("nosuch code {other}: {msg}").as_str());
+                            self.warn(format!("nosuch code {other}: {msg}").as_str());
 
                         }
                     }
@@ -169,15 +206,17 @@ impl<L:Logger> Client<L> {
                     let parse = reqwest::Url::parse(&url).unwrap();
                     let mut pairs = parse.query_pairs();
                     let (_, v) = pairs.find(|(k,_)|{*k == "bili_jct"}).unwrap();
-                    // self.cookie_store.add_cookie_str(cookie, url)
                     let bili_jct = v.to_string();
                     self.status = ClientStatus::Online (
                         ClientStatusOnline {
-                            cookies: Cookies { bili_jct: bili_jct.clone() },
+                            bili_jct: bili_jct.clone(),
                             live_send_req_generator: LiveSendReqGenerator::new() 
                         }
                     );
                     self.info("已登录成功");
+                    if self.cookie_file_writer.is_some() {
+                        self.save_cookies()?;
+                    }
                     return Ok(true);
                 },
             }

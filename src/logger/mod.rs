@@ -13,11 +13,11 @@ pub enum LogLevel {
 impl Display for LogLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            LogLevel::Critical => "Crt",
-            LogLevel::Error => "Err",
-            LogLevel::Warn => "Wrn",
-            LogLevel::Info => "Inf",
-            LogLevel::Debug => "Dbg",
+            LogLevel::Critical => "Critical",
+            LogLevel::Error => "Error",
+            LogLevel::Warn => "Warn",
+            LogLevel::Info => "Info",
+            LogLevel::Debug => "Debug",
         })
     }
 }
