@@ -1,5 +1,6 @@
 use std::path::Path;
 use bilibili_client::{
+    danmaku, 
     Client,
     ClientConfig,
     ClientError,
@@ -7,7 +8,7 @@ use bilibili_client::{
         LogLevel,
         stdout_logger::StdoutLogger
     },
-    api::live::msg::LiveDanmaku,
+    api::live::msg::{LiveDanmaku},
 };
 
 
@@ -25,8 +26,10 @@ async fn main() -> Result<(), ClientError>{
             client.login().await?;
         } else {
             loop {
-                let danmaku = LiveDanmaku::text("黑楼黑旗黑暗剑");
-                match client.send_danmaku_to_live(5461071, danmaku).await {
+                // let d1 = danmaku!("黑楼黑旗黑暗剑");
+                // let d2 = danmaku!(22470216=>765);
+                // let d3 = danmaku!(official=>147);
+                match client.send_danmaku_to_live(5461071, danmaku!("黑楼黑旗黑暗剑")).await {
                     Ok(resp) => {
                         client.info(resp.to_string())
                     }
