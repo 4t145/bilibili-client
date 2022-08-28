@@ -19,10 +19,7 @@ features = ["full"]
 use bilibili_client::{
     Client,
     ClientError,
-    logger::{
-        LogLevel,
-        stdout_logger::StdoutLogger
-    },
+    logger::stdout_logger::StdoutLogger,
     api::live::msg::LiveDanmaku,
 };
 
