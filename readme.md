@@ -6,8 +6,8 @@
 在`cargo.toml`加入
 ```toml
 [dependencies.qrcode]
-git = https://github.com/4t145/bilibili-client
-branch = master
+git = "https://github.com/4t145/bilibili-client"
+branch = "master"
 
 [dependencies.tokio]
 version = "^1.19"
