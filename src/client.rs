@@ -3,49 +3,22 @@ use std::sync::Arc;
 use crate::consts::*;
 use crate::api::passport::qrcode::*;
 use crate::api::live::msg::send::*;
-
+use crate::api::live::msg::LiveDanmaku;
 use crate::api::{Api, ApiError};
-use crate::logger::{Logger, Log, LogLevel};
+use crate::logger::{Logger};
 use reqwest::cookie::Jar;
 
-macro_rules! critical {
-    ($client:expr, $msg: expr) => {
-        $client.logger.text(Log{
-            content: $msg.to_owned().into(),
-            level: LogLevel::Critical,
-        })
+
+macro_rules! expose_logger_method {
+    ($self:ident, $($method:ident),*) => {
+        $(
+            #[inline]
+            pub fn $method(&mut $self, msg:impl Into<String>) {
+                $self.logger.$method(msg.into());
+            }
+        )*
     };
 }
-
-
-macro_rules! debug {
-    ($client:expr, $msg: expr) => {
-        $client.logger.text(Log{
-            content: $msg.to_owned().into(),
-            level: LogLevel::Debug,
-        })
-    };
-}
-
-
-macro_rules! info {
-    ($client:expr, $msg: expr) => {
-        $client.logger.text(Log{
-            content: $msg.to_owned().into(),
-            level: LogLevel::Info,
-        })
-    };
-}
-
-macro_rules! warn {
-    ($client:expr, $msg: expr) => {
-        $client.logger.text(Log{
-            content: $msg.to_owned().into(),
-            level: LogLevel::Warn,
-        })
-    };
-}
-
 
 pub struct Client<L: Logger> {
     http_client: reqwest::Client,
@@ -73,17 +46,13 @@ impl<L:Logger> Client<L> {
         client
     }
 
-    #[inline]
-    pub fn info(&mut self, msg:&str) {
-        info!(self, msg)
-    }
+    expose_logger_method!(self, critical, error, warn, info, debug);
 
-    pub fn warn(&mut self, msg:&str) {
-        warn!(self, msg)
-    }
-
-    pub fn debug(&mut self, msg:&str) {
-        debug!(self, msg)
+    pub fn is_online(&self) -> bool {
+        match self.status {
+            ClientStatus::Online(_) => true,
+            _ => false,
+        }
     }
 
     #[inline]
@@ -113,7 +82,7 @@ impl<L:Logger> Client<L> {
     }
 }
 
-pub enum ClientStatus {
+enum ClientStatus {
     Offline,
     Online(ClientStatusOnline)
 }
@@ -130,7 +99,7 @@ impl ClientStatus {
     }
 }
 
-pub struct ClientStatusOnline {
+struct ClientStatusOnline {
     cookies: Cookies,
     live_send_req_generator: LiveSendReqGenerator
 }
@@ -149,7 +118,7 @@ impl ClientStatusOnline {
     }
 }
 
-pub struct Cookies {
+struct Cookies {
     bili_jct: String,
     /* may impl later */
     // sess_data: String,
@@ -180,14 +149,14 @@ impl<L:Logger> Client<L> {
                 GetLoginInfoRespData::Code(code) => {
                     match code {
                         -1 => {
-                            critical!(self, "缺少oauth_key");
+                            self.critical("缺少oauth_key");
                         }
                         -2 => {
-                            warn!(self, "二维码已过期");
+                            self.warn("二维码已过期");
                             return Ok(false);
                         }
-                        -4 => debug!(self, "二维码尚未扫描"),
-                        -5 => info!(self, "二维码已扫描"),
+                        -4 => self.debug("二维码尚未扫描"),
+                        -5 => self.info("二维码已扫描"),
                         other => {
                             let msg = resp.message.unwrap_or_default();
                             self.debug(format!("nosuch code {other}: {msg}").as_str());
@@ -208,7 +177,7 @@ impl<L:Logger> Client<L> {
                             live_send_req_generator: LiveSendReqGenerator::new() 
                         }
                     );
-                    info!(self, "已登录成功");
+                    self.info("已登录成功");
                     return Ok(true);
                 },
             }

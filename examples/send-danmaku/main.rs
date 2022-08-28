@@ -1,10 +1,10 @@
 use bilibili_client::{
-    client::Client,
+    Client,
     logger::{
         LogLevel,
         stdout_logger::StdoutLogger
     },
-    api::live::msg::send::LiveDanmaku
+    api::live::msg::LiveDanmaku,
 };
 
 
@@ -22,10 +22,10 @@ async fn main() {
                         let danmaku = LiveDanmaku::Text("黑楼黑旗黑暗剑".to_owned());
                         match client.send_danmaku_to_live(5461071, danmaku).await {
                             Ok(resp) => {
-                                client.info(resp.to_string().as_str())
+                                client.info(resp.to_string())
                             }
                             Err(e) => {
-                                client.warn(format!("解析响应失败{e:?}").as_str())
+                                client.warn(format!("解析响应失败{e:?}"))
                             }
                         }
                         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await
@@ -35,7 +35,7 @@ async fn main() {
                 }
             }
             Err(e) => {
-                client.warn(format!("{e:?}").as_str())
+                client.warn(format!("{e:?}"))
             }
         } 
         client.warn("sleep 1 sec");

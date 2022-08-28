@@ -2,10 +2,7 @@ use rand::RngCore;
 use crate::api::{/* CommonResp, */ Api};
 use serde::{Serialize, Deserialize};
 
-pub enum LiveDanmaku {
-    Emoticon(String),
-    Text(String)
-}
+
 
 pub struct LiveSend;
 

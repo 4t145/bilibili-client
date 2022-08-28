@@ -36,9 +36,49 @@ pub struct Log<C: From<String>> {
 
 pub trait Logger {
     type Log: From<String>;
-    fn text(&mut self, log: Log<Self::Log>);
+    fn log(&mut self, log: Log<Self::Log>);
     fn qrcode<'b>(&mut self, bytes: impl Into<&'b [u8]>);
     fn level(&self) -> &LogLevel;
     fn level_mut(&mut self) -> &mut LogLevel;
+
+    #[inline]
+    fn critical(&mut self, content: impl Into<Self::Log>) {
+        self.log(Log{
+            content: content.into(),
+            level: LogLevel::Critical
+        })
+    }
+
+    #[inline]
+    fn error(&mut self, content: impl Into<Self::Log>) {
+        self.log(Log{
+            content: content.into(),
+            level: LogLevel::Error
+        })
+    }
+
+    #[inline]
+    fn warn(&mut self, content: impl Into<Self::Log>) {
+        self.log(Log{
+            content: content.into(),
+            level: LogLevel::Warn
+        })
+    }
+
+    #[inline]
+    fn info(&mut self, content: impl Into<Self::Log>) {
+        self.log(Log{
+            content: content.into(),
+            level: LogLevel::Info
+        })
+    }
+
+    #[inline]
+    fn debug(&mut self, content: impl Into<Self::Log>) {
+        self.log(Log{
+            content: content.into(),
+            level: LogLevel::Debug
+        })
+    }
 }
 

@@ -1,4 +1,7 @@
 mod consts;
-pub mod client;
+pub(crate) mod client;
 pub mod api;
 pub mod logger;
+
+// re-export
+pub use client::*;

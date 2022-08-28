@@ -19,7 +19,7 @@ impl StdoutLogger {
 impl super::Logger for StdoutLogger {
     type Log = String;
 
-    fn text(&mut self, log: Log<Self::Log>) {
+    fn log(&mut self, log: Log<Self::Log>) {
         if self.level.should_output(&log.level) {
             // match log.level {
             //     LogLevel::Debug => todo!(),
@@ -40,8 +40,9 @@ impl super::Logger for StdoutLogger {
         .dark_color(unicode::Dense1x2::Light)
         .light_color(unicode::Dense1x2::Dark)
         .build();
+        
         println!("[QRCODE]:");
-        let sepline = "=".repeat(w);
+        let sepline = "=".repeat(w+8);
         println!("{:^}", sepline);
         println!("{show}");
         println!("{:^}", sepline);
