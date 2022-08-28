@@ -1,5 +1,5 @@
 use reqwest::Method;
-use crate::api_trait::Api;
+use crate::api::Api;
 
 pub struct GetLoginUrl;
 
@@ -33,7 +33,7 @@ pub struct GetLoginInfo;
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginInfoReq {
-    pub oauth_key: String
+    pub(crate) oauth_key: String
 }
 
 
@@ -52,6 +52,7 @@ pub enum GetLoginInfoRespData {
         url: String
     }
 }
+
 impl Api for GetLoginInfo {
     type Request = GetLoginInfoReq;
     type Response = GetLoginInfoResp;

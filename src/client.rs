@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::consts::*;
-use crate::passport::qrcode::*;
+use crate::api::passport::qrcode::*;
 use crate::api::live::msg::send::*;
 
-use crate::api_trait::{Api, ApiError};
+use crate::api::{Api, ApiError};
 use crate::logger::{Logger, Log, LogLevel};
 use reqwest::cookie::Jar;
 

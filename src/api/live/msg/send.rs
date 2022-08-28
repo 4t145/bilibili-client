@@ -1,6 +1,5 @@
 use rand::RngCore;
-use crate::api_trait::Api;
-use crate::api::CommonResp;
+use crate::api::{/* CommonResp, */ Api};
 use serde::{Serialize, Deserialize};
 
 pub enum LiveDanmaku {
@@ -34,13 +33,13 @@ pub struct LiveSendReqGenerator {
 }
 
 impl LiveSendReqGenerator {
-    pub fn new() -> Self{
+    pub(crate) fn new() -> Self{
         Self {
             rng: rand::thread_rng()
         }
     }
 
-    pub fn gen(&mut self, roomid:u64, msg: String, bili_jct: String) -> LiveSendReq {
+    pub(crate) fn gen(&mut self, roomid:u64, msg: String, bili_jct: String) -> LiveSendReq {
         let rnd = self.rng.next_u32();
         LiveSendReq {
             csrf: bili_jct,
@@ -53,7 +52,7 @@ impl LiveSendReqGenerator {
         }
     }
 
-    pub fn gen_emoticon(&mut self, roomid:u64, emoticon: String, bili_jct: String) -> LiveSendReq {
+    pub(crate) fn gen_emoticon(&mut self, roomid:u64, emoticon: String, bili_jct: String) -> LiveSendReq {
         let rnd = self.rng.next_u32();
         LiveSendReq {
             csrf: bili_jct,
@@ -63,21 +62,6 @@ impl LiveSendReqGenerator {
             color: LiveDanmakuColor::White as u32,
             fontsize: 25,
             dm_type: Some(1)
-        }
-    }
-}
-
-impl LiveSendReq {
-    #[inline]
-    pub fn new(bili_jct: String, msg: String, roomid: u64, rnd: u32) -> Self {
-        Self {
-            csrf: bili_jct,
-            msg,
-            roomid,
-            rnd,
-            color: LiveDanmakuColor::White as u32,
-            fontsize: 25,
-            dm_type: None
         }
     }
 }
