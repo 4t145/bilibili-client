@@ -14,13 +14,14 @@ async fn main() {
     let logger = StdoutLogger::new();
     let mut client = Client::new(logger);
     client.logger.set_level(LogLevel::Info);
+    
     loop {
         match client.login().await {
             Ok(result) => {
                 if result == true {
                     loop {
-                        let danmaku = LiveDanmaku::Text("黑楼黑旗黑暗剑".to_owned());
-                        match client.send_danmaku_to_live(5461071, danmaku).await {
+                        let danmaku = LiveDanmaku::text("黑楼黑旗黑暗剑");
+                        match client.send_danmaku_to_live(851181, danmaku).await {
                             Ok(resp) => {
                                 client.info(resp.to_string())
                             }
