@@ -64,7 +64,6 @@ impl<L:Logger> Client<L> {
         let status = cookie_store.get("bilibili.com", "/", "bili_jct").map(|c|{
             ClientStatus::Online(ClientStatusOnline {
                 bili_jct: c.value().into(),
-                live_send_req_generator: LiveSendReqGenerator::new(),
             }) 
         }).unwrap_or(ClientStatus::Offline);
 
@@ -150,7 +149,6 @@ impl ClientStatus {
 
 struct ClientStatusOnline {
     bili_jct: String,
-    live_send_req_generator: LiveSendReqGenerator
 }
 
 impl ClientStatusOnline {
@@ -158,10 +156,10 @@ impl ClientStatusOnline {
     fn make_live_send_req(&mut self, roomid: u64, msg: LiveDanmaku) -> LiveSendReq {
         match msg {
             LiveDanmaku::Emoticon(e) => {
-                self.live_send_req_generator.gen_emoticon(roomid, e, self.bili_jct.clone())
+                gen_emoticon(roomid, e, self.bili_jct.clone())
             },
             LiveDanmaku::Text(msg) => {
-                self.live_send_req_generator.gen(roomid, msg, self.bili_jct.clone())
+                gen(roomid, msg, self.bili_jct.clone())
             },
         }
     }
@@ -210,7 +208,6 @@ impl<L:Logger> Client<L> {
                     self.status = ClientStatus::Online (
                         ClientStatusOnline {
                             bili_jct: bili_jct.clone(),
-                            live_send_req_generator: LiveSendReqGenerator::new() 
                         }
                     );
                     self.info("已登录成功");
