@@ -166,56 +166,87 @@ impl ClientStatusOnline {
 }
 
 
-
+pub enum QrcodeState {
+    NotYet,
+    HaveBeen,
+    Expired,
+    LackOauthKey,
+    Ohter(i8),
+    Success
+}
 impl<L:Logger> Client<L> {
-    pub async fn login(&mut self) -> Result<bool, ClientError> {
+    pub async fn fetch_qrcode(&mut self) -> Result<String, ClientError> {
         self.debug("START LOGIN");
         let resp = self.urlencoded_req::<GetLoginUrl>(()).await.map_err(ClientError::Api)?;
         self.debug("GENERATED RESP");
         let oauth_key = resp.data.oauth_key;
         self.debug(format!("AUTHKEY = {oauth_key}").as_str());
         self.logger.qrcode(resp.data.url.as_bytes());
+        Ok(oauth_key)
+    }
+    
+    pub async fn try_login(&mut self, oauth_key:String) -> Result<QrcodeState, ClientError> {
+        use QrcodeState::*;
+        let resp = self.urlencoded_req::<GetLoginInfo>(
+            GetLoginInfoReq {oauth_key}
+        ).await.map_err(ClientError::Api)?;
+        match resp.data {
+            GetLoginInfoRespData::Code(code) => {
+                match code {
+                    -1 => {
+                        self.critical("缺少oauth_key");
+                        return Ok(LackOauthKey);
+                    }
+                    -2 => {
+                        self.warn("二维码已过期");
+                        return Ok(Expired);
+                    }
+                    -4 => {
+                        self.debug("二维码尚未扫描");
+                        return Ok(NotYet);
+                    },
+                    -5 => {
+                        self.info("二维码已扫描");
+                        return Ok(HaveBeen);
+                    },
+                    other => {
+                        let msg = resp.message.unwrap_or_default();
+                        self.warn(format!("nosuch code {other}: {msg}").as_str());
+                        return Ok(Ohter(other));
+                    }
+                }
+            },
+            GetLoginInfoRespData::Body { url } => {
+                let parse = reqwest::Url::parse(&url).unwrap();
+                let mut pairs = parse.query_pairs();
+                let (_, v) = pairs.find(|(k,_)|{*k == "bili_jct"}).unwrap();
+                let bili_jct = v.to_string();
+                self.status = ClientStatus::Online (
+                    ClientStatusOnline {
+                        bili_jct: bili_jct.clone(),
+                    }
+                );
+                self.info("已登录成功");
+                if self.cookie_file_writer.is_some() {
+                    self.save_cookies()?;
+                }
+                return Ok(Success);
+            },
+        }
+    }
+
+
+    pub async fn login(&mut self) -> Result<bool, ClientError> {
+        let oauth_key = self.fetch_qrcode().await?;
         // scan qrcode...
         loop {
-            let resp = self.urlencoded_req::<GetLoginInfo>(
-                GetLoginInfoReq {oauth_key:oauth_key.clone()}
-            ).await.map_err(ClientError::Api)?;
-            match resp.data {
-                GetLoginInfoRespData::Code(code) => {
-                    match code {
-                        -1 => {
-                            self.critical("缺少oauth_key");
-                        }
-                        -2 => {
-                            self.warn("二维码已过期");
-                            return Ok(false);
-                        }
-                        -4 => self.debug("二维码尚未扫描"),
-                        -5 => self.info("二维码已扫描"),
-                        other => {
-                            let msg = resp.message.unwrap_or_default();
-                            self.warn(format!("nosuch code {other}: {msg}").as_str());
-
-                        }
-                    }
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                },
-                GetLoginInfoRespData::Body { url } => {
-                    let parse = reqwest::Url::parse(&url).unwrap();
-                    let mut pairs = parse.query_pairs();
-                    let (_, v) = pairs.find(|(k,_)|{*k == "bili_jct"}).unwrap();
-                    let bili_jct = v.to_string();
-                    self.status = ClientStatus::Online (
-                        ClientStatusOnline {
-                            bili_jct: bili_jct.clone(),
-                        }
-                    );
-                    self.info("已登录成功");
-                    if self.cookie_file_writer.is_some() {
-                        self.save_cookies()?;
-                    }
-                    return Ok(true);
-                },
+            match self.try_login(oauth_key.clone()).await? {
+                QrcodeState::NotYet => {},
+                QrcodeState::HaveBeen => {},
+                QrcodeState::Expired => return Ok(false),
+                QrcodeState::LackOauthKey => return Ok(false),
+                QrcodeState::Ohter(_) => return Ok(false),
+                QrcodeState::Success => return Ok(true),
             }
         }
     }
