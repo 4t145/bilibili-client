@@ -5,7 +5,7 @@
 ## 使用 USAGE
 在`cargo.toml`加入
 ```toml
-[dependencies.qrcode]
+[dependencies.bilibili-client]
 git = "https://github.com/4t145/bilibili-client"
 branch = "master"
 
