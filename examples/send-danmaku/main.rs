@@ -1,14 +1,10 @@
-use std::{path::Path, sync::Arc};
+use std::{path::Path};
 use bilibili_client::{
     danmaku, 
     Client,
     ClientConfig,
     ClientError,
-    logger::{
-        LogLevel,
-        stdout_logger::StdoutLogger
-    },
-    transaction::{send_danmaku_to_live::SendDanmakuToLive, Task, Transaction}
+    transaction::{send_danmaku_to_live::SendDanmakuToLive}
 };
 
 
@@ -20,13 +16,12 @@ async fn main() -> Result<(), ClientError>{
     let client = Client::new(config)?;
 
     
-    let client = Arc::new(client);
     loop {
         if !client.is_online() {
 
         } else {
             loop {
-                client.clone().excute(SendDanmakuToLive { 
+                client.excute(SendDanmakuToLive { 
                     roomid: 5461071, 
                     danmaku: danmaku!("黑楼黑旗黑暗剑") 
                 });

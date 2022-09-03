@@ -18,37 +18,6 @@ pub struct LiveSendReq {
 }
 
 
-
-
-
-
-pub(crate) fn gen(roomid:u64, msg: String, bili_jct: String) -> LiveSendReq {
-    let rnd = rand::random();
-    LiveSendReq {
-        csrf: bili_jct,
-        msg,
-        roomid,
-        rnd,
-        color: super::LiveDanmakuColor::White as u32,
-        fontsize: 25,
-        dm_type: None
-    }
-}
-
-pub(crate) fn gen_emoticon(roomid:u64, emoticon: String, bili_jct: String) -> LiveSendReq {
-    let rnd = rand::random();
-    LiveSendReq {
-        csrf: bili_jct,
-        msg: emoticon,
-        roomid,
-        rnd,
-        color: super::LiveDanmakuColor::White as u32,
-        fontsize: 25,
-        dm_type: Some(1)
-    }
-}
-
-
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum LiveSendRespData {

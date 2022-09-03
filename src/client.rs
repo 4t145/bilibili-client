@@ -1,6 +1,4 @@
-use std::fs::File;
-use std::io::BufWriter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::consts::*;
@@ -11,7 +9,7 @@ use reqwest_cookie_store::CookieStoreRwLock;
 pub struct Client {
     http_client: reqwest::Client,
     cookie_store: Arc<CookieStoreRwLock>,
-    cookie_file_writer: Option<BufWriter<File>>,
+    cookie_file_path: Option<PathBuf>,
     // pub loggers: Vec<Box<dyn Logger>>
 }
 
@@ -29,19 +27,19 @@ pub enum ClientError {
 }
 
 impl Client {
-    pub fn new(config: ClientConfig) -> Result<Self, ClientError> {
+    pub fn new(config: ClientConfig) -> Result<Arc<Self>, ClientError> {
         use ClientError::*;
         use std::io::{BufReader};
         use std::fs::OpenOptions;
-        let (cookie_store, writer) = match config.cookie_file {
+        let cookie_store = match config.cookie_file {
             Some(path) => {
                 let reader = OpenOptions::new().create(true).write(true).read(true).open(&path).map(BufReader::new).map_err(Fs)?;
-                let s = cookie_store::CookieStore::load_json(reader).map_err(CookieStore)?;
-                let writer = OpenOptions::new().write(true).open(&path).map(BufWriter::new).map_err(Fs)?;
-                (s, Some(writer))
+                let store = cookie_store::CookieStore::load_json(reader).map_err(CookieStore)?;
+                store
+                // (s, Some(writer))
             },
             None => {
-                (cookie_store::CookieStore::default(), None)
+                cookie_store::CookieStore::default()
             },
         };
 
@@ -54,20 +52,24 @@ impl Client {
             .build()
             .unwrap(),
             cookie_store: cookie_store,
-            cookie_file_writer: writer,
+            cookie_file_path: config.cookie_file.map(|x|x.to_path_buf()),
             // loggers: Vec::new(),
         };
-        Ok(client)
+        Ok(Arc::new(client))
     }
 
 
-    pub fn save_cookies_to_file(&mut self) -> Result<(), ClientError> {
+    pub fn save_cookies_to_file(&self) -> Result<(), ClientError> {
         use std::io::{Write};
-        if let Some(writer) = &mut self.cookie_file_writer {
+        use std::io::BufWriter;
+        use std::fs::OpenOptions;
+        use ClientError::*;
+        if let Some(path) = &self.cookie_file_path {
+            let mut writer = OpenOptions::new().write(true).open(path).map(BufWriter::new).map_err(Fs)?;
             {
-                let _ = &self.cookie_store.read().unwrap().save_json(writer).map_err(ClientError::CookieStore)?;
+                let _ = &self.cookie_store.read().unwrap().save_json(&mut writer).map_err(CookieStore)?;
             }
-            writer.flush().map_err(ClientError::Fs)?;
+            writer.flush().map_err(Fs)?;
             return Ok(())
         }
         Err(ClientError::NoCookieFile)
@@ -115,7 +117,7 @@ impl Client {
 }
 
 impl Client {
-    pub fn excute<T:Transaction>(self: Arc<Self>, transaction: T) -> Task<T> {
-        transaction.excute_on(self)
+    pub fn excute<T:Transaction>(self: &Arc<Self>, transaction: T) -> Task<T> {
+        transaction.excute_on(self.clone())
     }
 }
