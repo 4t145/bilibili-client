@@ -36,7 +36,6 @@ impl Client {
                 let reader = OpenOptions::new().create(true).write(true).read(true).open(&path).map(BufReader::new).map_err(Fs)?;
                 let store = cookie_store::CookieStore::load_json(reader).map_err(CookieStore)?;
                 store
-                // (s, Some(writer))
             },
             None => {
                 cookie_store::CookieStore::default()
@@ -53,7 +52,6 @@ impl Client {
             .unwrap(),
             cookie_store: cookie_store,
             cookie_file_path: config.cookie_file.map(|x|x.to_path_buf()),
-            // loggers: Vec::new(),
         };
         Ok(Arc::new(client))
     }
@@ -77,7 +75,7 @@ impl Client {
 
     pub fn get_cookie(&self, key: &str) -> Option<String> {
         let store = self.cookie_store.read().unwrap();
-        let cookie = store.get(".bilibili.com", "/", key);
+        let cookie = store.get("bilibili.com", "/", key);
         cookie.map(|c|c.value().to_string())
     }
 

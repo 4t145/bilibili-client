@@ -14,8 +14,9 @@ impl Transaction for Login {
         let (tx, state) = watch::channel(FetchingQrcode);
         let handle = tokio::spawn(async move {
             let resp = client.urlencoded_req::<GetLoginUrl>(()).await.map_err(ClientError::Api)?;
+            let url = resp.data.url;
             let oauth_key = resp.data.oauth_key;
-            tx.send(ScaningQrcode(oauth_key.clone())).unwrap();
+            tx.send(ScaningQrcode(url.clone())).unwrap();
             let resp = client.urlencoded_req::<GetLoginInfo>(
                 GetLoginInfoReq {oauth_key}
             ).await.map_err(ClientError::Api)?;
