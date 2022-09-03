@@ -4,34 +4,18 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::consts::*;
-use crate::api::passport::qrcode::*;
-use crate::api::live::msg::send::*;
-use crate::api::live::msg::LiveDanmaku;
 use crate::api::{Api, ApiError};
-use crate::logger::{Logger};
+use crate::transaction::{Transaction, Task};
 use reqwest_cookie_store::CookieStoreRwLock;
 
-macro_rules! expose_logger_method {
-    ($self:ident, $($method:ident),*) => {
-        $(
-            #[inline]
-            pub fn $method(&mut $self, msg:impl Into<String>) {
-                $self.logger.$method(msg.into());
-            }
-        )*
-    };
-}
-
-pub struct Client<L: Logger> {
+pub struct Client {
     http_client: reqwest::Client,
-    status: ClientStatus,
     cookie_store: Arc<CookieStoreRwLock>,
     cookie_file_writer: Option<BufWriter<File>>,
-    pub logger: L
+    // pub loggers: Vec<Box<dyn Logger>>
 }
 
-pub struct ClientConfig<'p, L: Logger> {
-    pub logger: L,
+pub struct ClientConfig<'p> {
     pub cookie_file: Option<&'p Path>
 }
 
@@ -44,8 +28,8 @@ pub enum ClientError {
     NoCookieFile
 }
 
-impl<L:Logger> Client<L> {
-    pub fn new(config: ClientConfig<L>) -> Result<Self, ClientError> {
+impl Client {
+    pub fn new(config: ClientConfig) -> Result<Self, ClientError> {
         use ClientError::*;
         use std::io::{BufReader};
         use std::fs::OpenOptions;
@@ -61,12 +45,6 @@ impl<L:Logger> Client<L> {
             },
         };
 
-        let status = cookie_store.get("bilibili.com", "/", "bili_jct").map(|c|{
-            ClientStatus::Online(ClientStatusOnline {
-                bili_jct: c.value().into(),
-            }) 
-        }).unwrap_or(ClientStatus::Offline);
-
         let cookie_store = reqwest_cookie_store::CookieStoreRwLock::new(cookie_store);
         let cookie_store = Arc::new(cookie_store);
         let client = Self {
@@ -76,24 +54,14 @@ impl<L:Logger> Client<L> {
             .build()
             .unwrap(),
             cookie_store: cookie_store,
-            status,
-            logger:config.logger,
             cookie_file_writer: writer,
+            // loggers: Vec::new(),
         };
         Ok(client)
     }
 
 
-    expose_logger_method!(self, critical, error, warn, info, debug);
-
-    pub fn is_online(&self) -> bool {
-        match self.status {
-            ClientStatus::Online(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn save_cookies(&mut self) -> Result<(), ClientError> {
+    pub fn save_cookies_to_file(&mut self) -> Result<(), ClientError> {
         use std::io::{Write};
         if let Some(writer) = &mut self.cookie_file_writer {
             {
@@ -103,6 +71,22 @@ impl<L:Logger> Client<L> {
             return Ok(())
         }
         Err(ClientError::NoCookieFile)
+    }
+
+    pub fn get_cookie(&self, key: &str) -> Option<String> {
+        let store = self.cookie_store.read().unwrap();
+        let cookie = store.get(".bilibili.com", "/", key);
+        cookie.map(|c|c.value().to_string())
+    }
+
+    #[inline]
+    pub fn get_cookie_jct(&self) -> Option<String> {
+        self.get_cookie("bili_jct")
+    }
+
+    #[inline]
+    pub fn is_online(&self) -> bool {
+        self.get_cookie_jct().is_some()
     }
 
     #[inline]
@@ -130,136 +114,8 @@ impl<L:Logger> Client<L> {
     }
 }
 
-enum ClientStatus {
-    Offline,
-    Online(ClientStatusOnline)
-}
-
-impl ClientStatus {
-    // fn map_online(&self) -> Result<> {
-
-    // }
-    fn map_online_mut(&mut self) -> Option<&mut ClientStatusOnline> {
-        match self {
-            ClientStatus::Online(s) => Some(s),
-            _ => None,
-        }
-    }
-}
-
-struct ClientStatusOnline {
-    bili_jct: String,
-}
-
-impl ClientStatusOnline {
-    #[inline]
-    fn make_live_send_req(&mut self, roomid: u64, msg: LiveDanmaku) -> LiveSendReq {
-        match msg {
-            LiveDanmaku::Emoticon(e) => {
-                gen_emoticon(roomid, e, self.bili_jct.clone())
-            },
-            LiveDanmaku::Text(msg) => {
-                gen(roomid, msg, self.bili_jct.clone())
-            },
-        }
-    }
-}
-
-
-pub enum QrcodeState {
-    NotYet,
-    HaveBeen,
-    Expired,
-    LackOauthKey,
-    Ohter(i8),
-    Success
-}
-impl<L:Logger> Client<L> {
-    pub async fn fetch_qrcode(&mut self) -> Result<String, ClientError> {
-        self.debug("START LOGIN");
-        let resp = self.urlencoded_req::<GetLoginUrl>(()).await.map_err(ClientError::Api)?;
-        self.debug("GENERATED RESP");
-        let oauth_key = resp.data.oauth_key;
-        self.debug(format!("AUTHKEY = {oauth_key}").as_str());
-        self.logger.qrcode(resp.data.url.as_bytes());
-        Ok(oauth_key)
-    }
-    
-    pub async fn try_login(&mut self, oauth_key:String) -> Result<QrcodeState, ClientError> {
-        use QrcodeState::*;
-        let resp = self.urlencoded_req::<GetLoginInfo>(
-            GetLoginInfoReq {oauth_key}
-        ).await.map_err(ClientError::Api)?;
-        match resp.data {
-            GetLoginInfoRespData::Code(code) => {
-                match code {
-                    -1 => {
-                        self.critical("缺少oauth_key");
-                        return Ok(LackOauthKey);
-                    }
-                    -2 => {
-                        self.warn("二维码已过期");
-                        return Ok(Expired);
-                    }
-                    -4 => {
-                        self.debug("二维码尚未扫描");
-                        return Ok(NotYet);
-                    },
-                    -5 => {
-                        self.info("二维码已扫描");
-                        return Ok(HaveBeen);
-                    },
-                    other => {
-                        let msg = resp.message.unwrap_or_default();
-                        self.warn(format!("nosuch code {other}: {msg}").as_str());
-                        return Ok(Ohter(other));
-                    }
-                }
-            },
-            GetLoginInfoRespData::Body { url } => {
-                let parse = reqwest::Url::parse(&url).unwrap();
-                let mut pairs = parse.query_pairs();
-                let (_, v) = pairs.find(|(k,_)|{*k == "bili_jct"}).unwrap();
-                let bili_jct = v.to_string();
-                self.status = ClientStatus::Online (
-                    ClientStatusOnline {
-                        bili_jct: bili_jct.clone(),
-                    }
-                );
-                self.info("已登录成功");
-                if self.cookie_file_writer.is_some() {
-                    self.save_cookies()?;
-                }
-                return Ok(Success);
-            },
-        }
-    }
-
-
-    pub async fn login(&mut self) -> Result<bool, ClientError> {
-        let oauth_key = self.fetch_qrcode().await?;
-        // scan qrcode...
-        loop {
-            match self.try_login(oauth_key.clone()).await? {
-                QrcodeState::NotYet => {},
-                QrcodeState::HaveBeen => {},
-                QrcodeState::Expired => return Ok(false),
-                QrcodeState::LackOauthKey => return Ok(false),
-                QrcodeState::Ohter(_) => return Ok(false),
-                QrcodeState::Success => return Ok(true),
-            }
-        }
-    }
-}
-
-/** Live Api */
-impl<L:Logger> Client<L> {
-    /// send danmaku
-    pub async fn send_danmaku_to_live(&mut self, roomid: u64, danmaku: LiveDanmaku) -> Result<<LiveSend as Api>::Response, ClientError> {
-        let online = self.status.map_online_mut().ok_or(ClientError::Offline)?;
-        let req = online.make_live_send_req(roomid, danmaku);
-        self.debug(serde_json::json!(req).to_string().as_str());
-        let resp = self.urlencoded_req::<LiveSend>(req).await.map_err(ClientError::Api)?;
-        return Ok(resp)
+impl Client {
+    pub fn excute<T:Transaction>(self: Arc<Self>, transaction: T) -> Task<T> {
+        transaction.excute_on(self)
     }
 }

@@ -29,54 +29,54 @@ impl LogLevel {
     }
 }
 
-pub struct Log<C: From<String>> {
-    pub content: C,
+pub struct Log<'c> {
+    pub content: &'c str,
     pub level: LogLevel
 }
 
 pub trait Logger {
-    type Log: From<String>;
-    fn log(&mut self, log: Log<Self::Log>);
-    fn qrcode<'b>(&mut self, bytes: impl Into<&'b [u8]>);
+    fn log(&mut self, log: Log);
     fn level(&self) -> &LogLevel;
     fn level_mut(&mut self) -> &mut LogLevel;
+    
+    fn qrcode<'b>(&mut self, bytes: &'b [u8]);
 
     #[inline]
-    fn critical(&mut self, content: impl Into<Self::Log>) {
+    fn critical<'c>(&mut self, content: &'c str) {
         self.log(Log{
-            content: content.into(),
+            content,
             level: LogLevel::Critical
         })
     }
 
     #[inline]
-    fn error(&mut self, content: impl Into<Self::Log>) {
+    fn error<'c>(&mut self, content: &'c str) {
         self.log(Log{
-            content: content.into(),
+            content,
             level: LogLevel::Error
         })
     }
 
     #[inline]
-    fn warn(&mut self, content: impl Into<Self::Log>) {
+    fn warn<'c>(&mut self, content: &'c str) {
         self.log(Log{
-            content: content.into(),
+            content,
             level: LogLevel::Warn
         })
     }
 
     #[inline]
-    fn info(&mut self, content: impl Into<Self::Log>) {
+    fn info<'c>(&mut self, content: &'c str) {
         self.log(Log{
-            content: content.into(),
+            content,
             level: LogLevel::Info
         })
     }
 
     #[inline]
-    fn debug(&mut self, content: impl Into<Self::Log>) {
+    fn debug<'c>(&mut self, content: &'c str) {
         self.log(Log{
-            content: content.into(),
+            content,
             level: LogLevel::Debug
         })
     }

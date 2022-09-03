@@ -17,16 +17,14 @@ impl StdoutLogger {
 }
 
 impl super::Logger for StdoutLogger {
-    type Log = String;
 
-    fn log(&mut self, log: Log<Self::Log>) {
+    fn log(&mut self, log: Log) {
         if self.level.should_output(&log.level) {
             println!("[{}] {}", log.level, log.content)
         }
     }
 
-    fn qrcode<'b>(&mut self, bytes: impl Into<&'b [u8]>) {
-        let bytes:&'b [u8] = bytes.into();
+    fn qrcode<'b>(&mut self, bytes: &'b [u8]) {
         let code = QrCode::new(bytes).unwrap();
         let w = code.width();
         let show = code.render::<unicode::Dense1x2>()
