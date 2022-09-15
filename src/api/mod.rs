@@ -41,6 +41,11 @@ pub trait Api {
         client.request(Self::METHOD, Self::URL).multipart(form).build().map_err(ApiError::ReqForm)
     }
 
+    /// !!! **Reqbody will be EMPTY while req is not an object** !!!
+    fn form_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
+        client.request(Self::METHOD, Self::URL).form(&req).build().map_err(ApiError::ReqForm)
+    }
+
     fn json_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
         client.request(Self::METHOD, Self::URL).json(&req).build().map_err(ApiError::ReqForm)
     }

@@ -58,7 +58,7 @@ impl Client {
 
 
     pub fn save_cookies_to_file(&self) -> Result<(), ClientError> {
-        use std::io::{Write};
+        use std::io::Write;
         use std::io::BufWriter;
         use std::fs::OpenOptions;
         use ClientError::*;
@@ -89,23 +89,34 @@ impl Client {
         self.get_cookie_jct().is_some()
     }
 
+    /// 以表单方式提交
+    #[inline]
+    pub async fn form_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
+        let request = A::form_req(&self.http_client, req)?;
+        self.http_client.execute(request).await
+            .map_err(ApiError::Http)?
+            .json().await.map_err(ApiError::Deser)
+    }
+
+    /// 以`form data`方式提交
     #[inline]
     pub async fn fd_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
-        
         let request = A::form_data_req(&self.http_client, req)?;
         self.http_client.execute(request).await
             .map_err(ApiError::Http)?
             .json().await.map_err(ApiError::Deser)
     }
 
+    /// 以`json`方式提交
     #[inline]
     pub async fn json_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
-        let request = A::form_data_req(&self.http_client, req)?;
+        let request = A::json_req(&self.http_client, req)?;
         self.http_client.execute(request).await
             .map_err(ApiError::Http)?
             .json().await.map_err(ApiError::Deser)
     }
 
+    /// 以`urlencoded`方式提交
     #[inline]
     pub async fn urlencoded_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
         let request = A::urlencoded_req(&self.http_client, req)?;

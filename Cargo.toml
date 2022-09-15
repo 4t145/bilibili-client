@@ -41,4 +41,7 @@ features = ["sync", "rt", "rt-multi-thread","macros"]
 name = "send_danmaku"
 path = "/examples/send-danmaku"
 
+[[example]]
+name = "get_emoticons"
+path = "/examples/get_emoticons"
 
