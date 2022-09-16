@@ -11,7 +11,7 @@ use bilibili_client::{
 };
 use qrcode::{QrCode, render::unicode::Dense1x2};
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), ClientError>{
     let config = ClientConfig { 
         cookie_file: Some(Path::new("./examples/cookies.json"))
@@ -24,6 +24,7 @@ async fn main() -> Result<(), ClientError>{
             let mut task = client.excute(Login{});
             loop {
                 task.state.changed().await.unwrap();
+                println!("new state");
                 let s = &*task.state.borrow();
                 match s {
                     LoginState::ScaningQrcode(qrcode) => {
@@ -38,7 +39,9 @@ async fn main() -> Result<(), ClientError>{
                         client.save_cookies_to_file()?;
                         break;
                     }
-                    _ => {},
+                    _ => {
+                        dbg!(s);
+                    },
                 }
             }
         } else {

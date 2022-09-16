@@ -62,6 +62,6 @@ pub struct GetEmoticonsRespData {
 impl Api for GetEmoticons  {
     type Request = GetEmoticonsRequest;
     type Response = CommonResp<GetEmoticonsRespData>;
-    const METHOD: reqwest::Method = reqwest::Method::POST;
+    const METHOD: reqwest::Method = reqwest::Method::GET;
     const URL: &'static str = "https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons";
 }

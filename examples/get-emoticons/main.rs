@@ -18,12 +18,14 @@ async fn main() -> Result<(), ClientError>{
         cookie_file: Some(Path::new("./examples/cookies.json"))
     };
     let client = Client::new(config)?;
-    let resp = client.as_ref().form_req::<GetEmoticons>(GetEmoticonsRequest::new_pc(21452505)).await.unwrap();
+    let resp = client.as_ref().query_req::<GetEmoticons>(GetEmoticonsRequest::new_pc(21452505)).await.unwrap();
+    dbg!(&resp);
     for group in resp.data.data {
         println!("[{}]:", group.pkg_name);
         for emoticon in group.emoticons {
             println!("{:?}", emoticon)
         }
     }
+    
     Ok(())
 }

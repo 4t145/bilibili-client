@@ -91,8 +91,8 @@ impl Client {
 
     /// 以表单方式提交
     #[inline]
-    pub async fn form_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
-        let request = A::form_req(&self.http_client, req)?;
+    pub async fn query_req<A: Api>(&self, req: A::Request) -> Result<A::Response, ApiError> {
+        let request = A::query(&self.http_client, req)?;
         self.http_client.execute(request).await
             .map_err(ApiError::Http)?
             .json().await.map_err(ApiError::Deser)

@@ -1,7 +1,7 @@
 pub mod live;
 pub mod passport;
 use serde::Deserialize;
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct CommonResp<T> {
     pub code: i32,
     pub message: Option<String>,
@@ -41,9 +41,8 @@ pub trait Api {
         client.request(Self::METHOD, Self::URL).multipart(form).build().map_err(ApiError::ReqForm)
     }
 
-    /// !!! **Reqbody will be EMPTY while req is not an object** !!!
-    fn form_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
-        client.request(Self::METHOD, Self::URL).form(&req).build().map_err(ApiError::ReqForm)
+    fn query(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
+        client.request(Self::METHOD, Self::URL).query(&req).build().map_err(ApiError::ReqForm)
     }
 
     fn json_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {

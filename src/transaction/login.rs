@@ -17,10 +17,12 @@ impl Transaction for Login {
             let url = resp.data.url;
             let oauth_key = resp.data.oauth_key;
             tx.send(ScaningQrcode(url.clone())).unwrap();
-            let resp = client.urlencoded_req::<GetLoginInfo>(
-                GetLoginInfoReq {oauth_key}
-            ).await.map_err(ClientError::Api)?;
             loop {
+                // 500毫秒的等待
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                let resp = client.urlencoded_req::<GetLoginInfo>(
+                    GetLoginInfoReq {oauth_key: oauth_key.clone()}
+                ).await.map_err(ClientError::Api)?;
                 match resp.data {
                     GetLoginInfoRespData::Code(code) => {
                         match code {
