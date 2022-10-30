@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+
 use std::sync::RwLock;
 use expire::MaybeExpired;
-use http_api_util::{cache::{FifoCache, ApiCache}, Api};
+use http_api_util::{cache::{FifoCache}, Api};
 
 use crate::api::user::info::UserInfo;
 

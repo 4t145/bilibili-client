@@ -9,7 +9,7 @@ pub struct CommonResp<T> {
     pub data: Option<T>
 }
 
-use reqwest::{Request, Error as HttpError, multipart::Form};
+use reqwest::{Error as HttpError};
 
 #[derive(Debug)]
 pub enum ApiError {
