@@ -5,10 +5,10 @@ pub mod send_danmaku_to_live;
 use tokio::{sync::{RwLock, watch}, task::JoinHandle};
 use std::{sync::Arc};
 
-use crate::Client;
+use crate::ReqwestClient;
 pub struct Executor<T: Transaction> {
     pub state: T::State,
-    pub client: Arc<RwLock<Client>>
+    pub client: Arc<RwLock<ReqwestClient>>
 }
 
 pub struct Task<T:Transaction> {
@@ -18,5 +18,5 @@ pub struct Task<T:Transaction> {
 
 pub trait Transaction: Sized + Sync + Send + 'static {
     type State;
-    fn excute_on(self, client: Arc<Client>) -> Task<Self>;
+    fn excute_on(self, client: Arc<ReqwestClient>) -> Task<Self>;
 }

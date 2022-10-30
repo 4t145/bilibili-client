@@ -1,6 +1,6 @@
 use std::{sync::Arc};
 use tokio::sync::{watch};
-use crate::{Client, api::live::msg::{LiveDanmaku, send::LiveSend}, ClientError};
+use crate::{ReqwestClient, api::live::msg::{LiveDanmaku, send::LiveSend}, ClientError};
 
 use super::{Transaction, Task};
 
@@ -12,7 +12,7 @@ pub struct SendDanmakuToLive {
 impl Transaction for SendDanmakuToLive {
     type State = SendDanmakuToLiveState;
 
-    fn excute_on(self, client: Arc<Client>) -> Task<Self> {
+    fn excute_on(self, client: Arc<ReqwestClient>) -> Task<Self> {
         use SendDanmakuToLiveState::*;
         let (tx, state) = watch::channel(Sending);
         let handle = tokio::spawn(async move {

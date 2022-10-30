@@ -30,5 +30,5 @@ impl Api for LiveSend  {
     type Request = LiveSendReq;
     type Response = CommonResp<LiveSendRespData>;
     const METHOD: reqwest::Method = reqwest::Method::POST;
-    const URL: &'static str = "https://api.live.bilibili.com/msg/send";
+    const CONST_URL: Option<&'static str> = Some("https://api.live.bilibili.com/msg/send");
 }

@@ -1,6 +1,6 @@
 use std::{sync::Arc};
 use tokio::sync::{watch};
-use crate::{Client, api::passport::qrcode::{GetLoginUrl, GetLoginInfo, GetLoginInfoReq, GetLoginInfoRespData}, ClientError};
+use crate::{ReqwestClient, api::passport::qrcode::{GetLoginUrl, GetLoginInfo, GetLoginInfoReq, GetLoginInfoRespData}, ClientError};
 
 use super::{Transaction, Task};
 
@@ -9,7 +9,7 @@ pub struct Login {}
 impl Transaction for Login {
     type State = LoginState;
 
-    fn excute_on(self, client: Arc<Client>) -> Task<Self> {
+    fn excute_on(self, client: Arc<ReqwestClient>) -> Task<Self> {
         use LoginState::*;
         let (tx, state) = watch::channel(FetchingQrcode);
         let handle = tokio::spawn(async move {

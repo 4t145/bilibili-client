@@ -63,5 +63,5 @@ impl Api for GetEmoticons  {
     type Request = GetEmoticonsRequest;
     type Response = CommonResp<GetEmoticonsRespData>;
     const METHOD: reqwest::Method = reqwest::Method::GET;
-    const URL: &'static str = "https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons";
+    const CONST_URL: Option<&'static str> = Some("https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons");
 }

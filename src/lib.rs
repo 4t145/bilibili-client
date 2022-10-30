@@ -6,4 +6,4 @@ pub mod api;
 // re-export
 pub use client::*;
 
-pub mod transaction;
+// pub mod transaction;

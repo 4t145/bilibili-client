@@ -28,7 +28,13 @@ features = ["derive"]
 rand = "0.8.5"
 cookie_store = "0.16.1"
 reqwest_cookie_store = "0.3.0"
+expire = "0.1.1"
+http_api_util = "0.1.2"
+http = "0.2.8"
 
+[dependencies.awc]
+version = "3.0.1"
+features = ["rustls"]
 [dev-dependencies.qrcode]
 version = "0.12"
 default-features = false
@@ -37,11 +43,10 @@ default-features = false
 version = "^1.19"
 features = ["sync", "rt", "rt-multi-thread","macros"]
 
-[[example]]
-name = "send_danmaku"
-path = "/examples/send-danmaku"
+[dev-dependencies.actix-web]
+version = "4.2.1"
 
 [[example]]
-name = "get_emoticons"
-path = "/examples/get_emoticons"
+name = "awc_client"
+path = "/examples/awc-client"
 

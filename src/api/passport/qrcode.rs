@@ -22,7 +22,7 @@ impl Api for GetLoginUrl {
     type Request = ();
     type Response = GetLoginUrlResp;
     const METHOD: Method = Method::GET;
-    const URL: &'static str = "https://passport.bilibili.com/qrcode/getLoginUrl";
+    const CONST_URL: Option<&'static str> = Some("https://passport.bilibili.com/qrcode/getLoginUrl");
 
 }
 
@@ -57,5 +57,5 @@ impl Api for GetLoginInfo {
     type Request = GetLoginInfoReq;
     type Response = GetLoginInfoResp;
     const METHOD: Method = Method::POST;
-    const URL: &'static str = "https://passport.bilibili.com/qrcode/getLoginInfo";
+    const CONST_URL: Option<&'static str> = Some("https://passport.bilibili.com/qrcode/getLoginInfo");
 }
