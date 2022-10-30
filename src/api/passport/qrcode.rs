@@ -1,4 +1,3 @@
-use reqwest::Method;
 use crate::api::Api;
 
 pub struct GetLoginUrl;
@@ -21,7 +20,7 @@ pub struct GetLoginUrlRespData {
 impl Api for GetLoginUrl {
     type Request = ();
     type Response = GetLoginUrlResp;
-    const METHOD: Method = Method::GET;
+    const METHOD: http::Method = http::Method::GET;
     const CONST_URL: Option<&'static str> = Some("https://passport.bilibili.com/qrcode/getLoginUrl");
 
 }
@@ -56,6 +55,6 @@ pub enum GetLoginInfoRespData {
 impl Api for GetLoginInfo {
     type Request = GetLoginInfoReq;
     type Response = GetLoginInfoResp;
-    const METHOD: Method = Method::POST;
+    const METHOD: http::Method = http::Method::POST;
     const CONST_URL: Option<&'static str> = Some("https://passport.bilibili.com/qrcode/getLoginInfo");
 }

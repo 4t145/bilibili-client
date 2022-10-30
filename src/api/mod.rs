@@ -9,14 +9,7 @@ pub struct CommonResp<T> {
     pub data: Option<T>
 }
 
-use reqwest::{Error as HttpError};
-
-#[derive(Debug)]
-pub enum ApiError {
-    Deser(HttpError),
-    Http(HttpError),
-    ReqForm(HttpError)
-}
+// use reqwest::{Error as HttpError};
 
 pub use http_api_util::Api;
 // pub trait Api {
