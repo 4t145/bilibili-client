@@ -1,6 +1,6 @@
-use awc::{
+use reqwest::{
     self,
-    error::{JsonPayloadError, SendRequestError},
+    Error
 };
 use expire::MaybeExpired;
 use http_api_util::{
@@ -10,33 +10,34 @@ use http_api_util::{
 
 use std::{
     hash::Hash,
-    sync::{RwLock, Arc},
+    sync::{RwLock},
     time,
 };
 
-mod api_cache;
+
 
 use crate::{api::{
     user::info::{UserInfo, UserInfoRequest, UserInfoResponse},
     CommonResp,
 }, consts::AGENT};
 
-pub struct AwcClient {
-    client: awc::Client,
+pub struct ReqwestClient {
+    client: reqwest::Client,
 }
 
 #[derive(Debug)]
 pub enum AwcClientError {
     SerJson(serde_json::Error),
-    Json(JsonPayloadError),
-    Send(SendRequestError),
+    Reqwest(Error),
 }
 
-impl AwcClient {
+impl ReqwestClient {
     pub fn new() -> Self {
-        let client = awc::Client::builder().add_default_header((http::header::USER_AGENT, AGENT)).finish();
-        return AwcClient {
-            client: client
+        let mut default_hreaders = http::HeaderMap::new();
+        default_hreaders.insert(http::header::USER_AGENT, AGENT.parse().unwrap());
+        let client = reqwest::Client::builder().default_headers(default_hreaders).build().unwrap();
+        return ReqwestClient {
+            client
         };
     }
 
@@ -45,12 +46,11 @@ impl AwcClient {
         request: &A::Request,
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
-        let mut resp = self.client
-            .request(A::METHOD, A::url(&request))
-            .send_json(&request)
+        let resp = self.client
+            .request(A::METHOD, A::url(&request).to_string()).json(&request).send()
             .await
-            .map_err(Send)?;
-        resp.json::<A::Response>().await.map_err(Json)
+            .map_err(Reqwest)?;
+        resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
     pub async fn send_form<A: Api>(
@@ -58,12 +58,13 @@ impl AwcClient {
         request: &A::Request,
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
-        let mut resp = self.client
-            .request(A::METHOD, A::url(&request))
-            .send_form(&request)
+        let resp = self.client
+            .request(A::METHOD, A::url(&request).to_string())
+            .form(&request)
+            .send()
             .await
-            .map_err(Send)?;
-        resp.json::<A::Response>().await.map_err(Json)
+            .map_err(Reqwest)?;
+        resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
     pub async fn send_form_cached<A: Api>(

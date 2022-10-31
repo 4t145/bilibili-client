@@ -1,6 +1,7 @@
 
 use bilibili_client::awc_client::*;
-use std::time::*;
+use http_api_util::cache::{FifoCache, ApiCache};
+use std::{time::*, sync::RwLock};
 use actix_web;
 #[actix_web::main]
 async fn main() {
@@ -10,10 +11,11 @@ async fn main() {
     let start_time = Instant::now();
     let secs = 10;
     let mut repeat_count = 0;
+    let room_info_cache = RwLock::new(FifoCache::new(128));
     while Instant::now() - start_time < Duration::from_secs(secs) {
         repeat_count += 1;
         let req_start_time = Instant::now();
-        let resp = awc_client.get_room_info_cached(59275).await.unwrap();
+        let resp = awc_client.get_room_info_cached(59275, &room_info_cache).await.unwrap();
         let req_end_time = Instant::now();
         let msspan = (req_end_time - req_start_time).as_millis();
         if msspan > 10 {
