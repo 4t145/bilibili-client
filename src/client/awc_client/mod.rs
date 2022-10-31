@@ -10,7 +10,7 @@ use http_api_util::{
 
 use std::{
     hash::Hash,
-    sync::{RwLock, Arc},
+    sync::RwLock,
     time,
 };
 
@@ -76,7 +76,6 @@ impl AwcClient {
         A::Request: Hash + Eq + Clone,
         A::Response: Clone,
     {
-        const EXPIRE: time::Duration = time::Duration::from_secs(1);
         {
             let cache = rwl_cache.read().unwrap();
             if let Some(maybe_expired) = cache.get(request) {
@@ -84,9 +83,7 @@ impl AwcClient {
                     return Ok(response.clone());
                 }
             }
-            // here cache dropped
         }
-        dbg!("缓存过期");
         let mut cache = rwl_cache.write().unwrap();
         let response = self.send_json::<A>(&request).await?;
         let mut maybe_expired = MaybeExpired::new();
@@ -99,10 +96,11 @@ impl AwcClient {
         &self,
         uid: u64,
         rwl_cache: &RwLock<FifoCache<UserInfoRequest, MaybeExpired<CommonResp<UserInfoResponse>>>>,
+        expire: Option<time::Duration>
     ) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
-        let request = UserInfoRequest { mid: uid };
         const EXPIRE: time::Duration = time::Duration::from_secs(1);
-        self.send_form_cached::<UserInfo>(&request, rwl_cache, EXPIRE).await
+        let request = UserInfoRequest { mid: uid };
+        self.send_form_cached::<UserInfo>(&request, rwl_cache, expire.unwrap_or(EXPIRE)).await
     }
 
     pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
