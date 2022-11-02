@@ -10,7 +10,7 @@ use http_api_util::{
 
 use std::{
     hash::Hash,
-    sync::{RwLock},
+    sync::{RwLock, Arc},
     time,
 };
 
@@ -20,6 +20,8 @@ use crate::{api::{
     user::info::{UserInfo, UserInfoRequest, UserInfoResponse},
     CommonResp,
 }, consts::AGENT};
+
+pub type FifoRwlCache<A> = RwLock<FifoCache<<A as Api>::Request, MaybeExpired<Arc<<A as Api>::Response>>>>;
 
 pub struct ReqwestClient {
     client: reqwest::Client,
@@ -70,9 +72,9 @@ impl ReqwestClient {
     pub async fn send_form_cached<A: Api>(
         &self,
         request: &A::Request,
-        rwl_cache: &RwLock<FifoCache<A::Request, MaybeExpired<A::Response>>>,
+        rwl_cache: &FifoRwlCache<A>,
         expire: time::Duration,
-    ) -> Result<A::Response, AwcClientError>
+    ) -> Result<Arc<A::Response>, AwcClientError>
     where
         A::Request: Hash + Eq + Clone,
         A::Response: Clone,
@@ -85,11 +87,9 @@ impl ReqwestClient {
                     return Ok(response.clone());
                 }
             }
-            // here cache dropped
         }
-        dbg!("缓存过期");
         let mut cache = rwl_cache.write().unwrap();
-        let response = self.send_json::<A>(&request).await?;
+        let response = Arc::new(self.send_json::<A>(&request).await?);
         let mut maybe_expired = MaybeExpired::new();
         maybe_expired.set(response.clone(), expire);
         cache.put(request.clone(), maybe_expired);
@@ -99,8 +99,8 @@ impl ReqwestClient {
     pub async fn get_room_info_cached(
         &self,
         uid: u64,
-        rwl_cache: &RwLock<FifoCache<UserInfoRequest, MaybeExpired<CommonResp<UserInfoResponse>>>>,
-    ) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
+        rwl_cache: &FifoRwlCache<UserInfo>,
+    ) -> Result<Arc<CommonResp<UserInfoResponse>>, AwcClientError> {
         let request = UserInfoRequest { mid: uid };
         const EXPIRE: time::Duration = time::Duration::from_secs(1);
         self.send_form_cached::<UserInfo>(&request, rwl_cache, EXPIRE).await
