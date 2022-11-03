@@ -79,7 +79,6 @@ impl ReqwestClient {
         A::Request: Hash + Eq + Clone,
         A::Response: Clone,
     {
-        const EXPIRE: time::Duration = time::Duration::from_secs(1);
         {
             let cache = rwl_cache.read().unwrap();
             if let Some(maybe_expired) = cache.get(request) {
@@ -88,10 +87,11 @@ impl ReqwestClient {
                 }
             }
         }
-        let mut cache = rwl_cache.write().unwrap();
+        // 不要持有写锁时把线程block掉？
         let response = Arc::new(self.send_json::<A>(&request).await?);
         let mut maybe_expired = MaybeExpired::new();
         maybe_expired.set(response.clone(), expire);
+        let mut cache = rwl_cache.write().unwrap();
         cache.put(request.clone(), maybe_expired);
         return Ok(response);
     }
@@ -102,7 +102,7 @@ impl ReqwestClient {
         rwl_cache: &FifoRwlCache<UserInfo>,
     ) -> Result<Arc<CommonResp<UserInfoResponse>>, AwcClientError> {
         let request = UserInfoRequest { mid: uid };
-        const EXPIRE: time::Duration = time::Duration::from_secs(1);
+        const EXPIRE: time::Duration = time::Duration::from_secs(10);
         self.send_form_cached::<UserInfo>(&request, rwl_cache, EXPIRE).await
     }
 
