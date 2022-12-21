@@ -18,7 +18,7 @@ use std::{
 
 use crate::{api::{
     user::info::{UserInfo, UserInfoRequest, UserInfoResponse},
-    CommonResp,
+    CommonResp, dynamic::topic::{DynamicTopicRequest, DynamicTopic, DynamicTopicResponse},
 }, consts::AGENT};
 
 pub type FifoRwlCache<A> = RwLock<FifoCache<<A as Api>::Request, MaybeExpired<Arc<<A as Api>::Response>>>>;
@@ -69,6 +69,19 @@ impl ReqwestClient {
         resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
+    pub async fn send_query<A: Api>(
+        &self,
+        request: &A::Request,
+    ) -> Result<A::Response, AwcClientError> {
+        use AwcClientError::*;
+        let resp = self.client
+            .request(A::METHOD, A::url(&request).to_string())
+            .send()
+            .await
+            .map_err(Reqwest)?;
+        resp.json::<A::Response>().await.map_err(Reqwest)
+    }
+
     pub async fn send_form_cached<A: Api>(
         &self,
         request: &A::Request,
@@ -109,5 +122,10 @@ impl ReqwestClient {
     pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
         let request = UserInfoRequest { mid: uid };
         self.send_form::<UserInfo>(&request).await
+    }
+
+    pub async fn get_dynamic_by_topic(&self, topic_name: String, offset_dynamic_id: u64) -> Result<CommonResp<DynamicTopicResponse>, AwcClientError> {
+        let request = DynamicTopicRequest {topic_name, offset_dynamic_id};
+        self.send_query::<DynamicTopic>(&request).await
     }
 }

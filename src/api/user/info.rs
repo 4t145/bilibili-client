@@ -74,7 +74,7 @@ pub struct UserInfoResponse {
 pub struct FansMedal {
     pub show: bool,
     pub wear: bool,
-    pub medal: Medal,
+    pub medal: Option<Medal>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

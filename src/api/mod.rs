@@ -1,6 +1,7 @@
 pub mod live;
 pub mod passport;
 pub mod user;
+pub mod dynamic;
 use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct CommonResp<T> {
