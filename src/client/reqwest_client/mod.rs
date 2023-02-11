@@ -1,6 +1,9 @@
 use reqwest::{
     self,
-    Error
+    Error, Url, cookie::CookieStore
+};
+use awc:: {
+    cookie::Cookie, Client,
 };
 use expire::MaybeExpired;
 use http_api_util::{
@@ -34,10 +37,15 @@ pub enum AwcClientError {
 }
 
 impl ReqwestClient {
-    pub fn new() -> Self {
+    pub fn new(cookie_store: Option<Arc<impl CookieStore + 'static>>) -> Self {
         let mut default_hreaders = http::HeaderMap::new();
         default_hreaders.insert(http::header::USER_AGENT, AGENT.parse().unwrap());
-        let client = reqwest::Client::builder().default_headers(default_hreaders).build().unwrap();
+        let mut client = reqwest::Client::builder()
+        .default_headers(default_hreaders);
+        if let Some(cookie_store) = cookie_store {
+            client = client.cookie_store(true).cookie_provider(cookie_store);
+        }
+        let client = client.build().unwrap();
         return ReqwestClient {
             client
         };
@@ -61,9 +69,9 @@ impl ReqwestClient {
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
         let resp = self.client
-            .request(A::METHOD, A::url(&request).to_string())
-            .form(&request)
-            .send()
+        .request(A::METHOD, A::url(&request).to_string())
+        .form(&request)
+        .send()
             .await
             .map_err(Reqwest)?;
         resp.json::<A::Response>().await.map_err(Reqwest)
