@@ -6,5 +6,5 @@ pub mod api;
 
 // re-export
 pub use client::*;
-
+pub use reqwest;
 // pub mod transaction;
