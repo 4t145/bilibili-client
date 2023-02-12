@@ -10,6 +10,7 @@ use http_api_util::{
     cache::{ApiCache, FifoCache},
     Api,
 };
+use serde_json::Value;
 
 use std::{
     hash::Hash,
@@ -20,7 +21,7 @@ use std::{
 
 
 use crate::{api::{
-    user::info::{UserInfo, UserInfoRequest, UserInfoResponse},
+    user::{info::{UserInfo, UserInfoRequest, UserInfoResponse}, cards::{UserCards, UserCardsRequest}},
     CommonResp, dynamic::topic::{DynamicTopicRequest, DynamicTopic, DynamicTopicResponse},
 }, consts::AGENT};
 
@@ -43,7 +44,7 @@ impl ReqwestClient {
         let mut client = reqwest::Client::builder()
         .default_headers(default_hreaders);
         if let Some(cookie_store) = cookie_store {
-            client = client.cookie_store(true).cookie_provider(cookie_store);
+            client = client.cookie_provider(cookie_store);
         }
         let client = client.build().unwrap();
         return ReqwestClient {
@@ -70,10 +71,15 @@ impl ReqwestClient {
         use AwcClientError::*;
         let resp = self.client
         .request(A::METHOD, A::url(&request).to_string())
+        .form(&request);
+        dbg!(&resp);
+        let resp = self.client
+        .request(A::METHOD, A::url(&request).to_string())
         .form(&request)
         .send()
             .await
             .map_err(Reqwest)?;
+        dbg!(&resp);
         resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
@@ -87,6 +93,7 @@ impl ReqwestClient {
             .send()
             .await
             .map_err(Reqwest)?;
+        // dbg!(resp.json::<Value>().await);
         resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
@@ -117,19 +124,27 @@ impl ReqwestClient {
         return Ok(response);
     }
 
-    pub async fn get_room_info_cached(
+    pub async fn get_user_info_cached(
         &self,
         uid: u64,
         rwl_cache: &FifoRwlCache<UserInfo>,
     ) -> Result<Arc<CommonResp<UserInfoResponse>>, AwcClientError> {
         let request = UserInfoRequest { mid: uid };
-        const EXPIRE: time::Duration = time::Duration::from_secs(10);
+        const EXPIRE: time::Duration = time::Duration::from_secs(3600);
         self.send_form_cached::<UserInfo>(&request, rwl_cache, EXPIRE).await
     }
-
+    
     pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
         let request = UserInfoRequest { mid: uid };
         self.send_form::<UserInfo>(&request).await
+    }
+
+    pub async fn get_user_info_list(
+        &self,
+        uids: Vec<u64>,
+    ) -> Result<CommonResp<Vec<UserInfoResponse>>, AwcClientError> {
+        let request = UserCardsRequest { uids };
+        self.send_query::<UserCards>(&request).await
     }
 
     pub async fn get_dynamic_by_topic(&self, topic_name: String, offset_dynamic_id: u64) -> Result<CommonResp<DynamicTopicResponse>, AwcClientError> {
