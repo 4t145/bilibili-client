@@ -71,15 +71,10 @@ impl ReqwestClient {
         use AwcClientError::*;
         let resp = self.client
         .request(A::METHOD, A::url(&request).to_string())
-        .form(&request);
-        dbg!(&resp);
-        let resp = self.client
-        .request(A::METHOD, A::url(&request).to_string())
         .form(&request)
         .send()
             .await
             .map_err(Reqwest)?;
-        dbg!(&resp);
         resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
@@ -93,7 +88,6 @@ impl ReqwestClient {
             .send()
             .await
             .map_err(Reqwest)?;
-        // dbg!(resp.json::<Value>().await);
         resp.json::<A::Response>().await.map_err(Reqwest)
     }
 
