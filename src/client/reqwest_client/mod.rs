@@ -1,16 +1,14 @@
 use reqwest::{
     self,
-    Error, Url, cookie::CookieStore
+    Error, cookie::CookieStore
 };
-use awc:: {
-    cookie::Cookie, Client,
-};
+
 use expire::MaybeExpired;
 use http_api_util::{
     cache::{ApiCache, FifoCache},
     Api,
 };
-use serde_json::Value;
+
 
 use std::{
     hash::Hash,
@@ -47,9 +45,9 @@ impl ReqwestClient {
             client = client.cookie_provider(cookie_store);
         }
         let client = client.build().unwrap();
-        return ReqwestClient {
+        ReqwestClient {
             client
-        };
+        }
     }
 
     pub async fn send_json<A: Api>(
@@ -58,7 +56,7 @@ impl ReqwestClient {
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
         let resp = self.client
-            .request(A::METHOD, A::url(&request).to_string()).json(&request).send()
+            .request(A::METHOD, A::url(request).to_string()).json(&request).send()
             .await
             .map_err(Reqwest)?;
         resp.json::<A::Response>().await.map_err(Reqwest)
@@ -70,7 +68,7 @@ impl ReqwestClient {
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
         let resp = self.client
-        .request(A::METHOD, A::url(&request).to_string())
+        .request(A::METHOD, A::url(request).to_string())
         .form(&request)
         .send()
             .await
@@ -84,7 +82,7 @@ impl ReqwestClient {
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
         let resp = self.client
-            .request(A::METHOD, A::url(&request).to_string())
+            .request(A::METHOD, A::url(request).to_string())
             .send()
             .await
             .map_err(Reqwest)?;
@@ -110,12 +108,12 @@ impl ReqwestClient {
             }
         }
         // 不要持有写锁时把线程block掉？
-        let response = Arc::new(self.send_json::<A>(&request).await?);
+        let response = Arc::new(self.send_json::<A>(request).await?);
         let mut maybe_expired = MaybeExpired::new();
         maybe_expired.set(response.clone(), expire);
         let mut cache = rwl_cache.write().unwrap();
         cache.put(request.clone(), maybe_expired);
-        return Ok(response);
+        Ok(response)
     }
 
     pub async fn get_user_info_cached(

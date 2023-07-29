@@ -35,9 +35,9 @@ pub enum AwcClientError {
 impl AwcClient {
     pub fn new() -> Self {
         let client = awc::Client::builder().add_default_header((http::header::USER_AGENT, AGENT)).finish();
-        return AwcClient {
-            client: client
-        };
+        AwcClient {
+            client
+        }
     }
 
     pub async fn send_json<A: Api>(
@@ -46,7 +46,7 @@ impl AwcClient {
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
         let mut resp = self.client
-            .request(A::METHOD, A::url(&request))
+            .request(A::METHOD, A::url(request))
             .send_json(&request)
             .await
             .map_err(Send)?;
@@ -59,7 +59,7 @@ impl AwcClient {
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
         let mut resp = self.client
-            .request(A::METHOD, A::url(&request))
+            .request(A::METHOD, A::url(request))
             .send_form(&request)
             .await
             .map_err(Send)?;
@@ -85,11 +85,11 @@ impl AwcClient {
             }
         }
         let mut cache = rwl_cache.write().unwrap();
-        let response = self.send_json::<A>(&request).await?;
+        let response = self.send_json::<A>(request).await?;
         let mut maybe_expired = MaybeExpired::new();
         maybe_expired.set(response.clone(), expire);
         cache.put(request.clone(), maybe_expired);
-        return Ok(response);
+        Ok(response)
     }
 
     pub async fn get_room_info_cached(

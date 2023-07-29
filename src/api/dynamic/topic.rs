@@ -40,9 +40,9 @@ impl Api for DynamicTopic {
 
     fn url(_request: &Self::Request) -> http::Uri {
         if let Some(const_url) = Self::CONST_URL {
-            return http::Uri::from_static(const_url)
+            http::Uri::from_static(const_url)
         } else {
-            return Self::dynamic_url(_request)
+            Self::dynamic_url(_request)
         }
     }
 }
