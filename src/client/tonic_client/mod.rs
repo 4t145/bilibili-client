@@ -3,16 +3,15 @@ use crate::{
         device::Device,
         fawkes::FawkesReq,
         locale::Locale,
-        network::{self, Network, NetworkType, TfType},
+        network::{Network, NetworkType, TfType},
         parabox::Exps,
-        restriction::{self, Restriction},
+        restriction::Restriction,
         Metadata,
     },
     utils::*,
 };
 mod buvid;
 mod fp;
-mod metadata;
 
 pub struct Bin<T> {
     inner: T,
@@ -22,7 +21,7 @@ pub struct Bin<T> {
 impl<T> std::ops::Deref for Bin<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        return &self.inner;
+        &self.inner
     }
 }
 
@@ -60,6 +59,18 @@ pub struct LoginInfo {
     eid: String,
     access_key: String,
 }
+
+impl LoginInfo {
+    pub fn new(id: u64, ak: impl Into<String>) -> Self {
+        let eid = gen_aurora_eid(id).unwrap_or_default();
+        LoginInfo {
+            bid: id,
+            eid,
+            access_key: ak.into(),
+        }
+    }
+}
+
 use std::sync::OnceLock;
 
 use prost::Message;
@@ -70,11 +81,12 @@ impl Default for TonicClient {
 }
 
 static APP_BUVID: OnceLock<String> = OnceLock::new();
+static APP_VERSION: OnceLock<String> = OnceLock::new();
 impl TonicClient {
     /// 原生 gRPC 接口
-    pub const GRPC_RAW_HOST_URL: &str = "grpc.biliapi.net";
+    pub const GRPC_RAW_HOST_URL: &str = "grpc://grpc.biliapi.net";
     /// Failover gRPC 接口
-    pub const GRPC_FAILOVER_HOST_URL: &str = "app.bilibili.com";
+    pub const GRPC_FAILOVER_HOST_URL: &str = "grpc://app.bilibili.com";
     pub fn new() -> Self {
         Self {
             device: Bin::from(Self::get_default_device()),
@@ -86,6 +98,20 @@ impl TonicClient {
             fawkes_req: Bin::from(Self::get_default_fawkes_req()),
             login_info: None,
         }
+    }
+    pub fn get_app_ver() -> &'static str {
+        APP_VERSION.get_or_init(|| "7.38.0".to_string()).as_str()
+    }
+    pub fn get_ua(&self) -> String {
+        format!(
+            "Dalvik/2.1.0 (Linux; U; Android 12; {device_model} Build/{device_build}) {app_ver} os/android model/{device_model} mobi_app/{mobi_app} build/{app_build} channel/master innerVer/{app_build_inner} osVer/12 network/2 grpc-java-cronet/1.36.1",
+            device_model = self.device.model,
+            device_build = self.device.build,
+            app_ver = Self::get_app_ver(),
+            mobi_app = self.metadata.mobi_app,
+            app_build = self.metadata.build,
+            app_build_inner = "app_build",
+        )
     }
     pub fn set_login_info(&mut self, login_info: LoginInfo) -> Option<LoginInfo> {
         self.metadata.modify(|x| {
@@ -115,9 +141,11 @@ impl TonicClient {
             .map(|x| x.eid.as_str())
             .unwrap_or_default();
         let trace_id = gen_trace_id();
+        let ua = self.get_ua();
         let mut ascii_keys = vec![
+            ("user-agent", ua.as_str()),
             (X_BILI_GAIA_VTOKEN, ""),
-            (X_BILI_AURORA_EID, &eid),
+            (X_BILI_AURORA_EID, eid),
             (X_BILI_MID, &mid),
             (X_BILI_AURORA_ZONE, ""),
             (X_BILI_TRACE_ID, &trace_id),

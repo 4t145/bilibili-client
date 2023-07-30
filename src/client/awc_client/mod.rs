@@ -8,18 +8,17 @@ use http_api_util::{
     Api,
 };
 
-use std::{
-    hash::Hash,
-    sync::RwLock,
-    time,
-};
+use std::{hash::Hash, sync::RwLock, time};
 
 mod api_cache;
 
-use crate::{api::{
-    user::info::{UserInfo, UserInfoRequest, UserInfoResponse},
-    CommonResp,
-}, consts::AGENT};
+use crate::{
+    api::{
+        user::info::{UserInfo, UserInfoRequest, UserInfoResponse},
+        CommonResp,
+    },
+    consts::AGENT,
+};
 
 pub struct AwcClient {
     client: awc::Client,
@@ -32,12 +31,18 @@ pub enum AwcClientError {
     Send(SendRequestError),
 }
 
+impl Default for AwcClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AwcClient {
     pub fn new() -> Self {
-        let client = awc::Client::builder().add_default_header((http::header::USER_AGENT, AGENT)).finish();
-        AwcClient {
-            client
-        }
+        let client = awc::Client::builder()
+            .add_default_header((http::header::USER_AGENT, AGENT))
+            .finish();
+        AwcClient { client }
     }
 
     pub async fn send_json<A: Api>(
@@ -45,7 +50,8 @@ impl AwcClient {
         request: &A::Request,
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
-        let mut resp = self.client
+        let mut resp = self
+            .client
             .request(A::METHOD, A::url(request))
             .send_json(&request)
             .await
@@ -58,7 +64,8 @@ impl AwcClient {
         request: &A::Request,
     ) -> Result<A::Response, AwcClientError> {
         use AwcClientError::*;
-        let mut resp = self.client
+        let mut resp = self
+            .client
             .request(A::METHOD, A::url(request))
             .send_form(&request)
             .await
@@ -96,14 +103,18 @@ impl AwcClient {
         &self,
         uid: u64,
         rwl_cache: &RwLock<FifoCache<UserInfoRequest, MaybeExpired<CommonResp<UserInfoResponse>>>>,
-        expire: Option<time::Duration>
+        expire: Option<time::Duration>,
     ) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
         const EXPIRE: time::Duration = time::Duration::from_secs(1);
         let request = UserInfoRequest { mid: uid };
-        self.send_form_cached::<UserInfo>(&request, rwl_cache, expire.unwrap_or(EXPIRE)).await
+        self.send_form_cached::<UserInfo>(&request, rwl_cache, expire.unwrap_or(EXPIRE))
+            .await
     }
 
-    pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
+    pub async fn get_live_info(
+        &self,
+        uid: u64,
+    ) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
         let request = UserInfoRequest { mid: uid };
         self.send_form::<UserInfo>(&request).await
     }

@@ -2,17 +2,19 @@
 //!
 //!
 //! see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/misc/device_identity.md
+//! 
+#[allow(dead_code)]
 pub enum Buvid<'id> {
     /// 请求资源默认使用
     AndroidID(&'id str),
     /// 设备鉴权相关 API 默认使用
     DrmId(&'id str),
     /// 现已弃用
-    IMEI(&'id str),
+    Imei(&'id str),
     /// 随机 UUID 值, 现已弃用
-    GUID(&'id str),
+    Guid(&'id str),
     /// 新版本弃用
-    MAC(&'id str),
+    Mac(&'id str),
     /// BStarA
     GoogleId(&'id str),
     /// BStarA
@@ -25,9 +27,9 @@ impl<'id> Buvid<'id> {
         let (buvid_prefix, input_md5) = match self {
             Self::AndroidID(v) => ("XX", md5::compute(v)),
             Self::DrmId(v) => ("XU", md5::compute(v)),
-            Self::IMEI(v) => ("XZ", md5::compute(v)),
-            Self::GUID(v) => ("XW", md5::compute(&v.replace("-", ""))),
-            Self::MAC(v) => ("XY", md5::compute(&v.replace(":", ""))),
+            Self::Imei(v) => ("XZ", md5::compute(v)),
+            Self::Guid(v) => ("XW", md5::compute(v.replace('-', ""))),
+            Self::Mac(v) => ("XY", md5::compute(v.replace(':', ""))),
             Self::GoogleId(v) => ("XG", md5::compute(v)),
             Self::FacebookId(v) => ("XF", md5::compute(v)),
         };
@@ -42,5 +44,3 @@ impl<'id> Buvid<'id> {
         unsafe { String::from_utf8_unchecked(buvid_raw_vec) }
     }
 }
-
-

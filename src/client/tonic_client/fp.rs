@@ -20,6 +20,7 @@ impl<'fp> Fp<'fp> {
         }
     }
     #[inline]
+    #[allow(clippy::all)]
     pub fn gen(self) -> String {
         let mut fp_raw = String::with_capacity(128);
         let device_fp_md5 = {
