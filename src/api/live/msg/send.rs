@@ -28,7 +28,7 @@ pub enum LiveSendRespData {
 
 impl Api for LiveSend  {
     type Request = LiveSendReq;
-    type Response = CommonResp<LiveSendRespData>;
+    type Response = CommonResp<()>;
     const METHOD: http::Method = http::Method::POST;
     const CONST_URL: Option<&'static str> = Some("https://api.live.bilibili.com/msg/send");
 }

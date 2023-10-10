@@ -1,18 +1,33 @@
+pub mod dynamic;
 pub mod live;
 pub mod passport;
 pub mod user;
-pub mod dynamic;
 use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct CommonResp<T> {
     pub code: i32,
     pub message: Option<String>,
-    pub data: Option<T>
+    pub data: Option<T>,
 }
 
+impl<T> From<CommonResp<T>> for Result<T, ClientError> {
+    fn from(resp: CommonResp<T>) -> Self {
+        if let Some(data) = resp.data {
+            debug_assert!(resp.code == 0);
+            Ok(data)
+        } else {
+            Err(ClientError::Fail {
+                code: resp.code,
+                message: resp.message.unwrap_or_default(),
+            })
+        }
+    }
+}
 // use reqwest::{Error as HttpError};
 
 pub use http_api_util::Api;
+
+use crate::reqwest_client::ClientError;
 // pub trait Api {
 //     type Request: serde::Serialize;
 //     type Response: for<'de> serde::Deserialize<'de>;

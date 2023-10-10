@@ -2,7 +2,7 @@
 // pub(crate) const PASSPORT_HOST_URL: &'static str = "https://passport.bilibili.com";
 pub(crate) const AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
 
-
+#[cfg(feature = "grpc")]
 /*
 GRPC METADATA
 */

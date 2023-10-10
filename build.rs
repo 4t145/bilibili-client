@@ -115,30 +115,30 @@ pub fn create_grpc_mod(proto_dir: impl AsRef<Path>, outdir: impl AsRef<Path>) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let proto_files = find_all_proto("bilibili-API-collect/grpc_api/bilibili/");
-    let out_dir = PathBuf::from("proto_build/");
-    let proto_version = out_dir.join("version");
-    let output = Command::new("git")
-        .args(["submodule", "status", "bilibili-API-collect"])
-        .output()
-        .expect("failed to execute process");
-    let sha1 = String::from_utf8_lossy(&output.stdout).trim().split(' ').next().unwrap().trim().to_string();
-    // 上游sha相同就没必要重新编译了
-    if let Ok(prev_sha1) = fs::read(&proto_version) {
-        if prev_sha1 == sha1.as_bytes() {
-            return Ok(());
-        }
-    }
-    fs::create_dir_all(&out_dir).expect("fail to create directory: ");
-    tonic_build::configure()
-        .build_client(true)
-        .out_dir(&out_dir)
-        .compile_well_known_types(true)
-        .build_server(false)
-        .compile(&proto_files, &["bilibili_api/grpc_api/"])?;
-    create_grpc_mod(&out_dir, "src/");
-    // let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    let mut f = fs::File::open(&proto_version).expect("fail to create version");
-    f.write_all(sha1.as_bytes()).expect("fail to write version");
+    // let proto_files = find_all_proto("bilibili-API-collect/grpc_api/bilibili/");
+    // let out_dir = PathBuf::from("proto_build/");
+    // let proto_version = out_dir.join("version");
+    // let output = Command::new("git")
+    //     .args(["submodule", "status", "bilibili-API-collect"])
+    //     .output()
+    //     .expect("failed to execute process");
+    // let sha1 = String::from_utf8_lossy(&output.stdout).trim().split(' ').next().unwrap().trim().to_string();
+    // // 上游sha相同就没必要重新编译了
+    // if let Ok(prev_sha1) = fs::read(&proto_version) {
+    //     if prev_sha1 == sha1.as_bytes() {
+    //         return Ok(());
+    //     }
+    // }
+    // fs::create_dir_all(&out_dir).expect("fail to create directory: ");
+    // tonic_build::configure()
+    //     .build_client(true)
+    //     .out_dir(&out_dir)
+    //     .compile_well_known_types(true)
+    //     .build_server(false)
+    //     .compile(&proto_files, &["bilibili_api/grpc_api/"])?;
+    // create_grpc_mod(&out_dir, "src/");
+    // // let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    // let mut f = fs::File::open(&proto_version).expect("fail to create version");
+    // f.write_all(sha1.as_bytes()).expect("fail to write version");
     Ok(())
 }

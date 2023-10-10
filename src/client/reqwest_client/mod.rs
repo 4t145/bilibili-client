@@ -30,9 +30,26 @@ pub struct ReqwestClient {
 }
 
 #[derive(Debug)]
-pub enum AwcClientError {
+pub enum ClientError {
     SerJson(serde_json::Error),
     Reqwest(Error),
+    Offline,
+    Fail {
+        code: i32,
+        message: String,
+    },
+}
+
+impl From<serde_json::Error> for ClientError {
+    fn from(e: serde_json::Error) -> Self {
+        ClientError::SerJson(e)
+    }
+}
+
+impl From<reqwest::Error> for ClientError {
+    fn from(e: reqwest::Error) -> Self {
+        ClientError::Reqwest(e)
+    }
 }
 
 impl ReqwestClient {
@@ -49,12 +66,16 @@ impl ReqwestClient {
             client
         }
     }
+    
+    pub fn get_jct(&self) -> Option<&str> {
+        todo!()
+    }
 
     pub async fn send_json<A: Api>(
         &self,
         request: &A::Request,
-    ) -> Result<A::Response, AwcClientError> {
-        use AwcClientError::*;
+    ) -> Result<A::Response, ClientError> {
+        use ClientError::*;
         let resp = self.client
             .request(A::METHOD, A::url(request).to_string()).json(&request).send()
             .await
@@ -65,8 +86,8 @@ impl ReqwestClient {
     pub async fn send_form<A: Api>(
         &self,
         request: &A::Request,
-    ) -> Result<A::Response, AwcClientError> {
-        use AwcClientError::*;
+    ) -> Result<A::Response, ClientError> {
+        use ClientError::*;
         let resp = self.client
         .request(A::METHOD, A::url(request).to_string())
         .form(&request)
@@ -79,8 +100,8 @@ impl ReqwestClient {
     pub async fn send_query<A: Api>(
         &self,
         request: &A::Request,
-    ) -> Result<A::Response, AwcClientError> {
-        use AwcClientError::*;
+    ) -> Result<A::Response, ClientError> {
+        use ClientError::*;
         let resp = self.client
             .request(A::METHOD, A::url(request).to_string())
             .send()
@@ -94,7 +115,7 @@ impl ReqwestClient {
         request: &A::Request,
         rwl_cache: &FifoRwlCache<A>,
         expire: time::Duration,
-    ) -> Result<Arc<A::Response>, AwcClientError>
+    ) -> Result<Arc<A::Response>, ClientError>
     where
         A::Request: Hash + Eq + Clone,
         A::Response: Clone,
@@ -120,13 +141,13 @@ impl ReqwestClient {
         &self,
         uid: u64,
         rwl_cache: &FifoRwlCache<UserInfo>,
-    ) -> Result<Arc<CommonResp<UserInfoResponse>>, AwcClientError> {
+    ) -> Result<Arc<CommonResp<UserInfoResponse>>, ClientError> {
         let request = UserInfoRequest { mid: uid };
         const EXPIRE: time::Duration = time::Duration::from_secs(3600);
         self.send_form_cached::<UserInfo>(&request, rwl_cache, EXPIRE).await
     }
     
-    pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
+    pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, ClientError> {
         let request = UserInfoRequest { mid: uid };
         self.send_form::<UserInfo>(&request).await
     }
@@ -134,13 +155,14 @@ impl ReqwestClient {
     pub async fn get_user_info_list(
         &self,
         uids: Vec<u64>,
-    ) -> Result<CommonResp<Vec<UserInfoResponse>>, AwcClientError> {
+    ) -> Result<CommonResp<Vec<UserInfoResponse>>, ClientError> {
         let request = UserCardsRequest { uids };
         self.send_query::<UserCards>(&request).await
     }
 
-    pub async fn get_dynamic_by_topic(&self, topic_name: String, offset_dynamic_id: u64) -> Result<CommonResp<DynamicTopicResponse>, AwcClientError> {
+    pub async fn get_dynamic_by_topic(&self, topic_name: String, offset_dynamic_id: u64) -> Result<CommonResp<DynamicTopicResponse>, ClientError> {
         let request = DynamicTopicRequest {topic_name, offset_dynamic_id};
         self.send_query::<DynamicTopic>(&request).await
     }
+
 }
