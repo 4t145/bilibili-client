@@ -71,8 +71,11 @@ impl ReqwestClient {
     pub fn get_jct(&self) -> Option<&str> {
         static BILIBILI_URL: OnceLock<Url> = OnceLock::new();
         let url = BILIBILI_URL.get_or_init(||Url::parse("bilibili.com").expect("invalid bilibli url"));
+        let Some(value) = self.cookie_store.cookies(url) else {
+            return None
+        };
+        // value.as_bytes().
         todo!();
-        // self.cookie_store.cookies(url)
         Some("")
     }
 

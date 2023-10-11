@@ -50,14 +50,14 @@ version = "0.24"
 
 [dev-dependencies.tokio]
 version = "^1.19"
-features = ["sync", "rt", "rt-multi-thread","macros", "fs"]
+features = ["sync", "rt", "rt-multi-thread", "macros", "fs", "process"]
 
 [dev-dependencies.actix-web]
 version = "4.2.1"
 
 [[example]]
-name = "awc_client"
-path = "/examples/awc-client"
+name = "reqwest_client"
+path = "/examples/reqwest-client"
 
 [build-dependencies]
 tonic-build = "0.9.2"
