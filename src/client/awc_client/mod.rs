@@ -73,44 +73,6 @@ impl AwcClient {
         resp.json::<A::Response>().await.map_err(Json)
     }
 
-    pub async fn send_form_cached<A: Api>(
-        &self,
-        request: &A::Request,
-        rwl_cache: &RwLock<FifoCache<A::Request, MaybeExpired<A::Response>>>,
-        expire: time::Duration,
-    ) -> Result<A::Response, AwcClientError>
-    where
-        A::Request: Hash + Eq + Clone,
-        A::Response: Clone,
-    {
-        {
-            let cache = rwl_cache.read().unwrap();
-            if let Some(maybe_expired) = cache.get(request) {
-                if let Some(response) = maybe_expired.get() {
-                    return Ok(response.clone());
-                }
-            }
-        }
-        let mut cache = rwl_cache.write().unwrap();
-        let response = self.send_json::<A>(request).await?;
-        let mut maybe_expired = MaybeExpired::new();
-        maybe_expired.set(response.clone(), expire);
-        cache.put(request.clone(), maybe_expired);
-        Ok(response)
-    }
-
-    pub async fn get_room_info_cached(
-        &self,
-        uid: u64,
-        rwl_cache: &RwLock<FifoCache<UserInfoRequest, MaybeExpired<CommonResp<UserInfoResponse>>>>,
-        expire: Option<time::Duration>,
-    ) -> Result<CommonResp<UserInfoResponse>, AwcClientError> {
-        const EXPIRE: time::Duration = time::Duration::from_secs(1);
-        let request = UserInfoRequest { mid: uid };
-        self.send_form_cached::<UserInfo>(&request, rwl_cache, expire.unwrap_or(EXPIRE))
-            .await
-    }
-
     pub async fn get_live_info(
         &self,
         uid: u64,

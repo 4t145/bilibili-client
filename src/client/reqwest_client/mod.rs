@@ -1,6 +1,6 @@
 use reqwest::{
     self,
-    Error, cookie::CookieStore
+    Error, cookie::{CookieStore, self}, Url
 };
 
 use expire::MaybeExpired;
@@ -12,7 +12,7 @@ use http_api_util::{
 
 use std::{
     hash::Hash,
-    sync::{RwLock, Arc},
+    sync::{RwLock, Arc, OnceLock},
     time,
 };
 
@@ -27,6 +27,7 @@ pub type FifoRwlCache<A> = RwLock<FifoCache<<A as Api>::Request, MaybeExpired<Ar
 
 pub struct ReqwestClient {
     client: reqwest::Client,
+    cookie_store: Arc<dyn CookieStore + 'static>,
 }
 
 #[derive(Debug)]
@@ -58,17 +59,27 @@ impl ReqwestClient {
         default_hreaders.insert(http::header::USER_AGENT, AGENT.parse().unwrap());
         let mut client = reqwest::Client::builder()
         .default_headers(default_hreaders);
-        if let Some(cookie_store) = cookie_store {
-            client = client.cookie_provider(cookie_store);
-        }
+        let cookie_store = if let Some(cookie_store) = cookie_store {
+            client = client.cookie_provider(cookie_store.clone());
+            cookie_store as Arc<dyn CookieStore>
+        } else {
+            let cookie_store = Arc::new(cookie::Jar::default());
+            client = client.cookie_provider(cookie_store.clone());
+            cookie_store as Arc<dyn CookieStore>
+        };
         let client = client.build().unwrap();
         ReqwestClient {
-            client
+            client,
+            cookie_store
         }
     }
     
     pub fn get_jct(&self) -> Option<&str> {
-        todo!()
+        static BILIBILI_URL: OnceLock<Url> = OnceLock::new();
+        let url = BILIBILI_URL.get_or_init(||Url::parse("bilibili.com").expect("invalid bilibli url"));
+        todo!();
+        // self.cookie_store.cookies(url)
+        Some("")
     }
 
     pub async fn send_json<A: Api>(
@@ -108,43 +119,6 @@ impl ReqwestClient {
             .await
             .map_err(Reqwest)?;
         resp.json::<A::Response>().await.map_err(Reqwest)
-    }
-
-    pub async fn send_form_cached<A: Api>(
-        &self,
-        request: &A::Request,
-        rwl_cache: &FifoRwlCache<A>,
-        expire: time::Duration,
-    ) -> Result<Arc<A::Response>, ClientError>
-    where
-        A::Request: Hash + Eq + Clone,
-        A::Response: Clone,
-    {
-        {
-            let cache = rwl_cache.read().unwrap();
-            if let Some(maybe_expired) = cache.get(request) {
-                if let Some(response) = maybe_expired.get() {
-                    return Ok(response.clone());
-                }
-            }
-        }
-        // 不要持有写锁时把线程block掉？
-        let response = Arc::new(self.send_json::<A>(request).await?);
-        let mut maybe_expired = MaybeExpired::new();
-        maybe_expired.set(response.clone(), expire);
-        let mut cache = rwl_cache.write().unwrap();
-        cache.put(request.clone(), maybe_expired);
-        Ok(response)
-    }
-
-    pub async fn get_user_info_cached(
-        &self,
-        uid: u64,
-        rwl_cache: &FifoRwlCache<UserInfo>,
-    ) -> Result<Arc<CommonResp<UserInfoResponse>>, ClientError> {
-        let request = UserInfoRequest { mid: uid };
-        const EXPIRE: time::Duration = time::Duration::from_secs(3600);
-        self.send_form_cached::<UserInfo>(&request, rwl_cache, EXPIRE).await
     }
     
     pub async fn get_live_info(&self, uid: u64) -> Result<CommonResp<UserInfoResponse>, ClientError> {
