@@ -54,19 +54,13 @@ impl From<reqwest::Error> for ClientError {
 }
 
 impl ReqwestClient {
-    pub fn new(cookie_store: Option<Arc<impl CookieStore + 'static>>) -> Self {
+    pub fn new<C: CookieStore + 'static>(cookie_store: Arc<C>) -> Self {
         let mut default_hreaders = http::HeaderMap::new();
         default_hreaders.insert(http::header::USER_AGENT, AGENT.parse().unwrap());
         let mut client = reqwest::Client::builder()
         .default_headers(default_hreaders);
-        let cookie_store = if let Some(cookie_store) = cookie_store {
-            client = client.cookie_provider(cookie_store.clone());
-            cookie_store as Arc<dyn CookieStore>
-        } else {
-            let cookie_store = Arc::new(cookie::Jar::default());
-            client = client.cookie_provider(cookie_store.clone());
-            cookie_store as Arc<dyn CookieStore>
-        };
+        client = client.cookie_provider(cookie_store.clone());
+        let cookie_store = cookie_store as Arc<dyn CookieStore>;
         let client = client.build().unwrap();
         ReqwestClient {
             client,

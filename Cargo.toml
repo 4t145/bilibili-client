@@ -44,11 +44,13 @@ version = "3.1.0"
 
 [dev-dependencies.qrcode]
 version = "0.12"
-default-features = false
+[dev-dependencies.image]
+version = "0.24"
+# default-features = false
 
 [dev-dependencies.tokio]
 version = "^1.19"
-features = ["sync", "rt", "rt-multi-thread","macros"]
+features = ["sync", "rt", "rt-multi-thread","macros", "fs"]
 
 [dev-dependencies.actix-web]
 version = "4.2.1"

@@ -28,39 +28,103 @@ impl<T> From<CommonResp<T>> for Result<T, ClientError> {
 pub use http_api_util::Api;
 
 use crate::reqwest_client::ClientError;
-// pub trait Api {
-//     type Request: serde::Serialize;
-//     type Response: for<'de> serde::Deserialize<'de>;
-//     const METHOD: reqwest::Method;
-//     const URL: &'static str;
+use std::collections::HashMap;
 
-//     /// !!! **Reqbody will be EMPTY while req is not an object** !!!
-//     fn form_data_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
-//         let json = serde_json::json!(req);
-//         let mut form = Form::new();
-//         if let Some(obj) = json.as_object() {
-//             for (key, val) in obj {
-//                 if !val.is_null() {
-//                     if val.is_string() {
-//                         form = form.text(key.clone(), val.to_string());
-//                     } else {
-//                         form = form.text(key.clone(), val.to_string());
-//                     }
-//                 }
-//             }
-//         }
-//         client.request(Self::METHOD, Self::URL).multipart(form).build().map_err(ApiError::ReqForm)
-//     }
+use http::HeaderMap;
+use reqwest::RequestBuilder;
+use serde::Serialize;
 
-//     fn query(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
-//         client.request(Self::METHOD, Self::URL).query(&req).build().map_err(ApiError::ReqForm)
-//     }
+#[derive(Default)]
+pub struct RequestParts<'a, Q, B> {
+    pub path: HashMap<&'static str, &'a dyn ToString>,
+    pub headers: HeaderMap,
+    pub query: Q,
+    pub body: B,
+}
 
-//     fn json_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
-//         client.request(Self::METHOD, Self::URL).json(&req).build().map_err(ApiError::ReqForm)
-//     }
+pub trait ContentType {
+    fn set_body<B: Serialize>(body: B, builder: RequestBuilder) -> RequestBuilder;
+}
 
-//     fn urlencoded_req(client:&reqwest::Client, req: Self::Request) -> Result<Request, ApiError> {
-//         client.request(Self::METHOD, Self::URL).form(&req).build().map_err(ApiError::ReqForm)
-//     }
-// }
+pub mod content_type {
+    use super::ContentType;
+    use reqwest::RequestBuilder;
+    use serde::Serialize;
+
+    impl ContentType for () {
+        fn set_body<B: Serialize>(_body: B, builder: RequestBuilder) -> RequestBuilder {
+            builder
+        }
+    }
+    pub struct Json;
+
+    impl ContentType for Json {
+        fn set_body<B: Serialize>(body: B, builder: RequestBuilder) -> RequestBuilder {
+            builder.json(&body)
+        }
+    }
+
+    pub struct Form;
+
+    impl ContentType for Form {
+        fn set_body<B: Serialize>(body: B, builder: RequestBuilder) -> RequestBuilder {
+            builder.form(&body)
+        }
+    }
+}
+
+pub trait Request<'r> {
+    type Body: Serialize + 'r;
+    type Query: Serialize + 'r;
+    type ContentType: ContentType;
+    type Response: for<'de> Deserialize<'de>;
+
+    const METHOD: http::Method;
+    const PATH: &'static str;
+
+    fn parts(&'r self) -> RequestParts<'r, Self::Query, Self::Body>;
+
+    fn custom_modify(&self, builder: RequestBuilder) -> RequestBuilder {
+        builder
+    }
+
+    fn build_request(
+        &'r self,
+        client: &reqwest::Client,
+        base: &str,
+    ) -> reqwest::Result<reqwest::Request> {
+        let RequestParts {
+            query,
+            path,
+            body,
+            headers,
+        } = self.parts();
+        let path_pat = Self::PATH;
+        let path = path_pat
+            .split('/')
+            .map(|x| {
+                if let Some(key) = x.strip_prefix(':') {
+                    path.get(key).expect("miss key").to_string()
+                } else {
+                    x.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("/");
+        let url = format!("{}/{}", base.trim_end_matches('/'), path);
+        let mut builder = client.request(Self::METHOD, url);
+        builder = builder.query(&query).headers(headers);
+        builder = Self::ContentType::set_body(body, builder);
+        self.custom_modify(builder).build()
+    }
+}
+
+pub async fn send<'r, R: Request<'r>>(
+    client: &reqwest::Client,
+    base: &str,
+    req: &'r R,
+) -> reqwest::Result<R::Response> {
+    let req = req.build_request(client, base)?;
+    let resp = client.execute(req).await?;
+    resp.json().await
+}

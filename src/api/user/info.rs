@@ -1,10 +1,33 @@
+use http::HeaderMap;
 use http_api_util::Api;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::api::CommonResp;
+use crate::api::Request;
+use crate::api::RequestParts;
+
+impl<'r> Request<'r> for UserInfoRequest {
+    type Body = ();
+    type ContentType = ();
+    type Query = &'r Self;
+    type Response = UserInfoResponse;
+
+    const METHOD: http::Method = http::Method::GET;
+    const PATH: &'static str = "https://api.bilibili.com/x/space/acc/info";
+
+    fn parts(&'r self) -> RequestParts<'r, Self::Query, Self::Body> {
+        RequestParts {
+            query: self,
+            path: HashMap::new(),
+            headers: HeaderMap::new(),
+            body: (),
+        }
+    }
+}
 
 
 pub struct UserInfo;
