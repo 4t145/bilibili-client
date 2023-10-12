@@ -26,7 +26,7 @@ features = ["derive"]
 
 [dependencies]
 rand = "0.8.5"
-reqwest = {version="0.11.14", features=["json", "cookies"]}
+reqwest = {version="0.11", features=["json", "cookies"]}
 # cookie_store = "0.18.0"
 # reqwest_cookie_store = "0.3.0"
 expire = "0.1.2"
@@ -39,6 +39,7 @@ prost-types = "0.11.9"
 base64 = "0.21.2"
 chrono = "0.4.26"
 md5 = "0.7.0"
+cookie = { version = "0.18.0", features = ["percent-encoding"] }
 [dependencies.awc]
 version = "3.1.0"
 

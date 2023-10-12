@@ -1,14 +1,15 @@
-use http::HeaderMap;
 use http_api_util::Api;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::str::FromStr;
 
+use crate::api::api_url;
 use crate::api::CommonResp;
 use crate::api::Request;
 use crate::api::RequestParts;
+use crate::reqwest_client::ClientError;
+use crate::reqwest_client::ReqwestClient;
 
 impl<'r> Request<'r> for UserInfoRequest {
     type Body = ();
@@ -17,18 +18,22 @@ impl<'r> Request<'r> for UserInfoRequest {
     type Response = UserInfoResponse;
 
     const METHOD: http::Method = http::Method::GET;
-    const PATH: &'static str = "https://api.bilibili.com/x/space/acc/info";
+    const PATH: &'static str = "x/space/acc/info";
 
     fn parts(&'r self) -> RequestParts<'r, Self::Query, Self::Body> {
-        RequestParts {
-            query: self,
-            path: HashMap::new(),
-            headers: HeaderMap::new(),
-            body: (),
-        }
+        RequestParts::query_from_request(self)
     }
 }
 
+impl ReqwestClient {
+    pub async fn user_info(
+        &self,
+        request: &UserInfoRequest,
+    ) -> Result<UserInfoResponse, ClientError> {
+        let resp = self.send(request, api_url()).await?;
+        Ok(resp)
+    }
+}
 
 pub struct UserInfo;
 
@@ -42,14 +47,18 @@ impl Api for UserInfo {
     const CONST_URL: Option<&'static str> = None;
 
     fn dynamic_url(request: &Self::Request) -> http::Uri {
-        http::Uri::from_str(&format!("https://api.bilibili.com/x/space/acc/info?mid={}", request.mid)).unwrap()
+        http::Uri::from_str(&format!(
+            "https://api.bilibili.com/x/space/acc/info?mid={}",
+            request.mid
+        ))
+        .unwrap()
     }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
 pub struct UserInfoRequest {
     #[serde(skip)]
-    pub mid: u64
+    pub mid: u64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -190,8 +199,7 @@ pub struct UserHonourInfo {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Theme {
-}
+pub struct Theme {}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LiveRoom {
