@@ -58,6 +58,6 @@ async fn main() {
         .await
         .expect("fail to login");
     println!("login: {:?}", login);
-    let cookie = reqwest_client.get_login_info();
+    let cookie = reqwest_client.get_login_info_from_cookie();
     println!("cookie: {:?}", cookie)
 }

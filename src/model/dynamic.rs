@@ -55,7 +55,7 @@ pub struct Vip {
     pub status: i64,
     pub theme_type: i64,
     #[serde(rename = "type")]
-    pub type_field: i64,
+    pub r#type: i64,
     pub vip_pay_type: i64,
 }
 

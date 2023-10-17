@@ -1,60 +1,86 @@
-use crate::api::Api;
+use crate::{
+    api::{content_type::Form, passport_url, Api, Request, RequestParts},
+    reqwest_client::{ClientError, ClientResult, ReqwestClient},
+};
 
-pub struct GetLoginUrl;
+impl ReqwestClient {
+    pub async fn get_login_url(&self) -> ClientResult<GetLoginUrlResp> {
+        self.send(&GetLoginUrlRequest, passport_url()).await
+    }
+    pub async fn get_login_info(&self, oauth_key: &str) -> ClientResult<GetLoginInfoResp> {
+        self.send(&GetLoginInfoRequest { oauth_key }, passport_url()).await
+    }
+}
+
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginUrlResp {
     pub code: i64,
     pub status: bool,
-    pub data: GetLoginUrlRespData
+    pub data: GetLoginUrlRespData,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginUrlRespData {
     pub url: String,
-    pub oauth_key: String
+    pub oauth_key: String,
 }
 
-impl Api for GetLoginUrl {
-    type Request = ();
+pub struct GetLoginUrlRequest;
+impl Request<'static> for GetLoginUrlRequest {
+    type Body = ();
+
+    type Query = ();
+
+    type ContentType = ();
+
     type Response = GetLoginUrlResp;
+
     const METHOD: http::Method = http::Method::GET;
-    const CONST_URL: Option<&'static str> = Some("https://passport.bilibili.com/qrcode/getLoginUrl");
 
+    const PATH: &'static str = "qrcode/getLoginUrl";
+
+    fn parts(&'static self) -> crate::api::RequestParts<'static, Self::Query, Self::Body> {
+        Default::default()
+    }
 }
-
-
-
-pub struct GetLoginInfo;
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetLoginInfoReq {
-    pub(crate) oauth_key: String
+pub struct GetLoginInfoRequest<'r> {
+    pub(crate) oauth_key: &'r str,
 }
 
+impl<'r> Request<'r> for GetLoginInfoRequest<'r> {
+    type Body = &'r Self;
+
+    type Query = ();
+
+    type ContentType = Form;
+
+    type Response = GetLoginInfoResp;
+
+    const METHOD: http::Method = http::Method::POST;
+
+    const PATH: &'static str = "qrcode/getLoginInfo";
+
+    fn parts(&'r self) -> crate::api::RequestParts<'r, Self::Query, Self::Body> {
+        RequestParts::body_from_request(self)
+    }
+}
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginInfoResp {
     pub message: Option<String>,
-    pub data: GetLoginInfoRespData
+    pub data: GetLoginInfoRespData,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum GetLoginInfoRespData {
     Code(i8),
-    Body {
-        url: String
-    }
-}
-
-impl Api for GetLoginInfo {
-    type Request = GetLoginInfoReq;
-    type Response = GetLoginInfoResp;
-    const METHOD: http::Method = http::Method::POST;
-    const CONST_URL: Option<&'static str> = Some("https://passport.bilibili.com/qrcode/getLoginInfo");
+    Body { url: String },
 }

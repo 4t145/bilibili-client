@@ -1,5 +1,5 @@
 use crate::{
-    api::passport::qrcode::{GetLoginInfo, GetLoginInfoReq, GetLoginInfoRespData, GetLoginUrl},
+    api::passport::qrcode::GetLoginInfoRespData,
     reqwest_client::{ClientError, ReqwestClient},
 };
 
@@ -42,23 +42,19 @@ async fn login<L: LoginByQrCode>(
     mut loginer: L,
     client: &ReqwestClient,
 ) -> Result<String, ClientError> {
-    let resp = client.send_form::<GetLoginUrl>(&()).await?;
+    let resp = client.get_login_url().await?;
     loginer.update_code(&resp.data.url).await;
-    let oauth_key = resp.data.oauth_key;
-    let mut get_login_info_req = GetLoginInfoReq { oauth_key };
+    let mut oauth_key = resp.data.oauth_key;
     loop {
         loginer.next_poll().await;
-        let resp = client
-            .send_form::<GetLoginInfo>(&get_login_info_req)
-            .await?;
+        let resp = client.get_login_info(&oauth_key).await?;
         match resp.data {
             GetLoginInfoRespData::Code(code) => match code {
                 -2 => {
                     loginer.expired().await;
-                    let resp = client.send_form::<GetLoginUrl>(&()).await?;
+                    let resp = client.get_login_url().await?;
                     loginer.update_code(&resp.data.url);
-                    let oauth_key = resp.data.oauth_key;
-                    get_login_info_req = GetLoginInfoReq { oauth_key };
+                    oauth_key = resp.data.oauth_key;
                     continue;
                 }
                 -4 => {

@@ -15,7 +15,7 @@ impl<'r> Request<'r> for UserInfoRequest {
     type Body = ();
     type ContentType = ();
     type Query = &'r Self;
-    type Response = UserInfoResponse;
+    type Response = CommonResp<UserInfoResponse>;
 
     const METHOD: http::Method = http::Method::GET;
     const PATH: &'static str = "x/space/acc/info";
@@ -25,13 +25,13 @@ impl<'r> Request<'r> for UserInfoRequest {
     }
 }
 
+
 impl ReqwestClient {
     pub async fn user_info(
         &self,
         request: &UserInfoRequest,
     ) -> Result<UserInfoResponse, ClientError> {
-        let resp = self.send(request, api_url()).await?;
-        Ok(resp)
+        self.send(request, api_url()).await?.into()
     }
 }
 

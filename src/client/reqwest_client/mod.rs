@@ -13,8 +13,6 @@ use crate::{
     api::{
         dynamic::topic::{DynamicTopic, DynamicTopicRequest, DynamicTopicResponse},
         user::{
-            cards::{UserCards, UserCardsRequest},
-            info::{UserInfo, UserInfoRequest, UserInfoResponse},
         },
         CommonResp,
     },
@@ -33,6 +31,8 @@ pub enum ClientError {
     Offline,
     Fail { code: i32, message: String },
 }
+
+pub type ClientResult<T> = Result<T, ClientError>;
 
 impl From<serde_json::Error> for ClientError {
     fn from(e: serde_json::Error) -> Self {
@@ -113,7 +113,7 @@ impl ReqwestClient {
         login_info.resgiter(self.cookie_store.as_ref());
     }
 
-    pub fn get_login_info(&self) -> LoginInfo {
+    pub fn get_login_info_from_cookie(&self) -> LoginInfo {
         let url = bilibili_url();
         let mut login_info = LoginInfo::default();
         let Some(value) = self.cookie_store.cookies(url) else {
@@ -184,22 +184,6 @@ impl ReqwestClient {
     ) -> Result<R::Response, ClientError> {
         let resp = crate::api::send(&self.client, base, req).await?;
         Ok(resp)
-    }
-
-    pub async fn get_live_info(
-        &self,
-        uid: u64,
-    ) -> Result<CommonResp<UserInfoResponse>, ClientError> {
-        let request = UserInfoRequest { mid: uid };
-        self.send_form::<UserInfo>(&request).await
-    }
-
-    pub async fn get_user_info_list(
-        &self,
-        uids: Vec<u64>,
-    ) -> Result<CommonResp<Vec<UserInfoResponse>>, ClientError> {
-        let request = UserCardsRequest { uids };
-        self.send_query::<UserCards>(&request).await
     }
 
     pub async fn get_dynamic_by_topic(

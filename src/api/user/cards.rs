@@ -1,44 +1,49 @@
-use http_api_util::Api;
-use serde::Deserialize;
 use serde::Serialize;
 
-use std::str::FromStr;
-
 use crate::api::CommonResp;
-
-use super::info::UserInfoResponse;
+use crate::api::Request;
+use crate::api::RequestParts;
+use crate::api::api_vc_url;
+use crate::reqwest_client::ClientError;
+use crate::reqwest_client::ReqwestClient;
 
 pub struct UserCards;
 
-impl Api for UserCards {
-    type Request = UserCardsRequest;
-
-    type Response = CommonResp<Vec<UserInfoResponse>>;
+impl<'r> Request<'r> for UserCardsRequest<'r> {
+    type Body = ();
+    type ContentType = ();
+    type Query = UserCardsRequestQuery;
+    type Response = CommonResp<()>;
 
     const METHOD: http::Method = http::Method::GET;
+    const PATH: &'static str = "account/v1/user/cards";
 
-    const CONST_URL: Option<&'static str> = None;
-
-    fn dynamic_url(request: &Self::Request) -> http::Uri {
-        let mut iter = request.uids.iter();
+    fn parts(&'r self) -> RequestParts<'r, Self::Query, Self::Body> {
         let mut uids = String::new();
-        if let Some(first) = iter.next() {
-            uids.push_str(&first.to_string());
-            for rest in iter {
-                uids.push(',');
-                uids.push_str(&rest.to_string());
-            }
+        self.uids.iter().for_each(|x| {
+            uids.push_str(&x.to_string());
+            uids.push(',');
+        });
+        uids.pop();
+        RequestParts {
+            query: UserCardsRequestQuery { uids },
+            ..Default::default()
         }
-
-        http::Uri::from_str(&format!(
-            "https://api.vc.bilibili.com/account/v1/user/cards?uids={uids}",
-        ))
-        .unwrap()
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
-pub struct UserCardsRequest {
-    #[serde(skip)]
-    pub uids: Vec<u64>,
+impl ReqwestClient {
+    pub async fn user_cards<'r>(&self, uids: &'r [u64]) -> Result<(), ClientError> {
+        self.send(&UserCardsRequest { uids }, api_vc_url()).await?.into()
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UserCardsRequest<'r> {
+    pub uids: &'r [u64],
+}
+
+#[derive(Default, Debug, Clone, Serialize)]
+pub struct UserCardsRequestQuery {
+    pub uids: String,
 }
