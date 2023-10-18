@@ -1,25 +1,26 @@
-use crate::api::{/* CommonResp, */ Api, CommonResp};
-use serde::{Serialize, Deserialize};
-
+use crate::{
+    api::{content_type::Json, CommonResp, Request},
+    reqwest_client::ReqwestClient,
+};
+use serde::{Deserialize, Serialize};
 
 /// 推荐使用表单方法提交
 pub struct GetEmoticons;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Copy)]
 pub struct GetEmoticonsRequest {
     pub room_id: u64,
-    pub platform: &'static str
+    pub platform: &'static str,
 }
 
 impl GetEmoticonsRequest {
     pub fn new_pc(room_id: u64) -> Self {
         Self {
             room_id,
-            platform: "pc"
+            platform: "pc",
         }
     }
 }
-
 
 #[derive(Deserialize, Debug)]
 pub struct EmoticonItem {
@@ -39,7 +40,7 @@ pub struct EmoticonItem {
     pub unlock_show_text: String,
     pub unlock_show_color: String,
     pub emoticon_unique: String,
-    pub emoticon_id: i32
+    pub emoticon_id: i32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -56,12 +57,31 @@ pub struct GetEmoticonsRespDataItem {
 #[derive(Deserialize, Debug)]
 pub struct GetEmoticonsRespData {
     pub data: Vec<GetEmoticonsRespDataItem>,
-    pub fans_brand: i32
+    pub fans_brand: i32,
 }
 
-impl Api for GetEmoticons  {
-    type Request = GetEmoticonsRequest;
+impl<'r> Request<'r> for GetEmoticonsRequest {
+    type Body = &'r Self;
+    type Query = ();
+    type ContentType = Json;
     type Response = CommonResp<GetEmoticonsRespData>;
     const METHOD: http::Method = http::Method::GET;
-    const CONST_URL: Option<&'static str> = Some("https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons");
+    const PATH: &'static str = "xlive/web-ucenter/v2/emoticon/GetEmoticons";
+    fn parts(&'r self) -> crate::api::RequestParts<'r, Self::Query, Self::Body> {
+        crate::api::RequestParts::body_from_request(self)
+    }
+}
+
+impl ReqwestClient {
+    pub async fn get_emoticons_pc(
+        &self,
+        room_id: u64,
+    ) -> crate::reqwest_client::ClientResult<GetEmoticonsRespData> {
+        self.send(
+            &GetEmoticonsRequest::new_pc(room_id),
+            crate::api::api_live_url(),
+        )
+        .await?
+        .into()
+    }
 }

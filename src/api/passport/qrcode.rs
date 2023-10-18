@@ -1,6 +1,6 @@
 use crate::{
-    api::{content_type::Form, passport_url, Api, Request, RequestParts},
-    reqwest_client::{ClientError, ClientResult, ReqwestClient},
+    api::{content_type::Form, passport_url, Request, RequestParts},
+    reqwest_client::{ClientResult, ReqwestClient},
 };
 
 impl ReqwestClient {

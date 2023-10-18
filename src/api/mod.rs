@@ -23,9 +23,6 @@ impl<T> From<CommonResp<T>> for Result<T, ClientError> {
         }
     }
 }
-// use reqwest::{Error as HttpError};
-
-pub use http_api_util::Api;
 
 use crate::reqwest_client::ClientError;
 use std::collections::HashMap;

@@ -1,7 +1,6 @@
 use http::HeaderValue;
 use reqwest::{self, cookie::CookieStore, Error, Url};
 
-use http_api_util::Api;
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -9,15 +8,7 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-use crate::{
-    api::{
-        dynamic::topic::{DynamicTopic, DynamicTopicRequest, DynamicTopicResponse},
-        user::{
-        },
-        CommonResp,
-    },
-    consts::AGENT,
-};
+use crate::consts::AGENT;
 
 pub struct ReqwestClient {
     client: reqwest::Client,
@@ -133,50 +124,6 @@ impl ReqwestClient {
         login_info
     }
 
-    pub async fn send_json<A: Api>(
-        &self,
-        request: &A::Request,
-    ) -> Result<A::Response, ClientError> {
-        use ClientError::*;
-        let resp = self
-            .client
-            .request(A::METHOD, A::url(request).to_string())
-            .json(&request)
-            .send()
-            .await
-            .map_err(Reqwest)?;
-        resp.json::<A::Response>().await.map_err(Reqwest)
-    }
-
-    pub async fn send_form<A: Api>(
-        &self,
-        request: &A::Request,
-    ) -> Result<A::Response, ClientError> {
-        use ClientError::*;
-        let resp = self
-            .client
-            .request(A::METHOD, A::url(request).to_string())
-            .form(&request)
-            .send()
-            .await
-            .map_err(Reqwest)?;
-        resp.json::<A::Response>().await.map_err(Reqwest)
-    }
-
-    pub async fn send_query<A: Api>(
-        &self,
-        request: &A::Request,
-    ) -> Result<A::Response, ClientError> {
-        use ClientError::*;
-        let resp = self
-            .client
-            .request(A::METHOD, A::url(request).to_string())
-            .send()
-            .await
-            .map_err(Reqwest)?;
-        resp.json::<A::Response>().await.map_err(Reqwest)
-    }
-
     pub async fn send<'r, R: crate::api::Request<'r>>(
         &self,
         req: &'r R,
@@ -184,17 +131,5 @@ impl ReqwestClient {
     ) -> Result<R::Response, ClientError> {
         let resp = crate::api::send(&self.client, base, req).await?;
         Ok(resp)
-    }
-
-    pub async fn get_dynamic_by_topic(
-        &self,
-        topic_name: String,
-        offset_dynamic_id: u64,
-    ) -> Result<CommonResp<DynamicTopicResponse>, ClientError> {
-        let request = DynamicTopicRequest {
-            topic_name,
-            offset_dynamic_id,
-        };
-        self.send_query::<DynamicTopic>(&request).await
     }
 }

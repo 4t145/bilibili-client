@@ -1,14 +1,35 @@
-use std::str::FromStr;
-use urlencoding::encode;
-use http_api_util::Api;
 use serde::{Deserialize, Serialize};
 
-use crate::api::CommonResp;
+use crate::{api::{CommonResp, Request}, reqwest_client::ReqwestClient};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct DynamicTopicRequest {
-    pub topic_name: String,
+pub struct DynamicTopicRequest<'r> {
+    pub topic_name: &'r str,
     pub offset_dynamic_id: u64
+}
+
+impl ReqwestClient {
+    pub async fn dynamic_topic<'r>(&self, topic_name: &'r str, offset_dynamic_id: u64) -> crate::reqwest_client::ClientResult<DynamicTopicResponse> {
+        self.send(&DynamicTopicRequest { topic_name, offset_dynamic_id }, crate::api::api_vc_url()).await?.into()
+    }
+}
+
+impl<'r> Request<'r> for DynamicTopicRequest<'r> {
+    type Body = ();
+
+    type Query = &'r Self;
+
+    type ContentType = ();
+
+    type Response = CommonResp<DynamicTopicResponse>;
+
+    const METHOD: http::Method = http::Method::GET;
+
+    const PATH: &'static str = "topic_svr/v1/topic_svr/topic_history";
+
+    fn parts(&'r self) -> crate::api::RequestParts<'r, Self::Query, Self::Body> {
+        crate::api::RequestParts::query_from_request(self)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -18,34 +39,6 @@ pub struct DynamicTopicResponse {
     pub offset: String
 }
 
-pub struct DynamicTopic;
-
-impl Api for DynamicTopic {
-    type Request = DynamicTopicRequest;
-
-    type Response = CommonResp<DynamicTopicResponse>;
-
-    const METHOD: http::Method = http::Method::GET;
-
-    const CONST_URL: Option<&'static str> = None;
-
-    fn dynamic_url(request: &Self::Request) -> http::Uri {
-        let url = format!(
-            "https://api.vc.bilibili.com/topic_svr/v1/topic_svr/topic_history?topic_name={}&offset_dynamic_id={}", 
-            encode(&request.topic_name), 
-            request.offset_dynamic_id
-        );
-        return http::Uri::from_str(url.as_str()).unwrap()
-    }
-
-    fn url(_request: &Self::Request) -> http::Uri {
-        if let Some(const_url) = Self::CONST_URL {
-            http::Uri::from_static(const_url)
-        } else {
-            Self::dynamic_url(_request)
-        }
-    }
-}
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CardItem {
     pub desc: Desc,

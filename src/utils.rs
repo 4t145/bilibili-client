@@ -1,5 +1,7 @@
+#[cfg(feature = "grpc")]
 use rand::Rng;
 
+#[cfg(feature = "grpc")]
 /// see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/grpc_api/readme.md
 pub fn gen_aurora_eid(uid: u64) -> Option<String> {
     if uid == 0 {
@@ -20,6 +22,7 @@ pub fn gen_aurora_eid(uid: u64) -> Option<String> {
     ))
 }
 
+#[cfg(feature = "grpc")]
 pub fn random_alphanumeric_string(len: usize) -> String {
     rand::thread_rng()
         .sample_iter(&rand::distributions::Alphanumeric)
@@ -28,11 +31,14 @@ pub fn random_alphanumeric_string(len: usize) -> String {
         .collect::<String>()
 }
 
+#[cfg(feature = "grpc")]
 pub fn random_hex_string(len: usize) -> String {
     (0..len)
         .map(|_| format!("{:x}", rand::thread_rng().gen::<u8>()))
         .collect()
 }
+
+#[cfg(feature = "grpc")]
 
 /// see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/grpc_api/readme.md
 pub fn gen_trace_id() -> String {
@@ -75,6 +81,7 @@ pub fn gen_trace_id() -> String {
     random_trace_id_final
 }
 
+#[cfg(feature = "grpc")]
 /// see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/misc/device_identity.md
 pub fn device_id(fp_raw: &str) -> String {
     let mut veri_code = 0;

@@ -1,5 +1,5 @@
 use crate::{
-    api::live::msg::{send::LiveSend, LiveDanmaku},
+    api::live::msg::LiveDanmaku,
     reqwest_client::{ClientError, ReqwestClient},
 };
 
@@ -11,8 +11,8 @@ impl Business for SendDanmakuToLive {
         let Some(jct) = client.get_login_info_from_cookie().bili_jct else {
             return Err(ClientError::Offline);
         };
-        let req = self.danmaku.as_send_req(self.roomid, jct.to_owned());
-        client.send_form::<LiveSend>(&req).await?.into()
+        let req = self.danmaku.as_send_req(self.roomid, &jct);
+        client.live_send(req).await
     }
 }
 
@@ -29,9 +29,7 @@ impl ReqwestClient {
         let Some(jct) = self.get_login_info_from_cookie().bili_jct else {
             return Err(ClientError::Offline);
         };
-        let req = business
-            .danmaku
-            .as_send_req(business.roomid, jct.to_owned());
-        self.send_form::<LiveSend>(&req).await?.into()
+        let req = business.danmaku.as_send_req(business.roomid, &jct);
+        self.live_send(req).await
     }
 }

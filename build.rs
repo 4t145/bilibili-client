@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::process::Command;
 use std::{
     collections::HashMap,
     fs,
@@ -37,7 +36,7 @@ pub fn create_grpc_mod(proto_dir: impl AsRef<Path>, outdir: impl AsRef<Path>) {
             if let Some(key) = iter.next() {
                 self.submods
                     .entry(key.to_string())
-                    .or_insert(Default::default())
+                    .or_default()
                     .add(iter)
             }
         }

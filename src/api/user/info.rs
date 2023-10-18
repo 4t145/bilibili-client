@@ -1,8 +1,7 @@
-use http_api_util::Api;
+
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
-use std::str::FromStr;
 
 use crate::api::api_url;
 use crate::api::CommonResp;
@@ -32,26 +31,6 @@ impl ReqwestClient {
         request: &UserInfoRequest,
     ) -> Result<UserInfoResponse, ClientError> {
         self.send(request, api_url()).await?.into()
-    }
-}
-
-pub struct UserInfo;
-
-impl Api for UserInfo {
-    type Request = UserInfoRequest;
-
-    type Response = CommonResp<UserInfoResponse>;
-
-    const METHOD: http::Method = http::Method::GET;
-
-    const CONST_URL: Option<&'static str> = None;
-
-    fn dynamic_url(request: &Self::Request) -> http::Uri {
-        http::Uri::from_str(&format!(
-            "https://api.bilibili.com/x/space/acc/info?mid={}",
-            request.mid
-        ))
-        .unwrap()
     }
 }
 
