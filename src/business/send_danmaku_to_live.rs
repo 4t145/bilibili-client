@@ -1,13 +1,13 @@
 use crate::{
     api::live::msg::LiveDanmaku,
-    reqwest_client::{ClientError, ReqwestClient},
+    reqwest_client::{ClientError, Client},
 };
 
 use super::Business;
 
 impl Business for SendDanmakuToLive {
     type Output = ();
-    async fn execute_on(self, client: &ReqwestClient) -> Result<Self::Output, ClientError> {
+    async fn execute_on(self, client: &Client) -> Result<Self::Output, ClientError> {
         let Some(jct) = client.get_login_info_from_cookie().bili_jct else {
             return Err(ClientError::Offline);
         };
@@ -21,7 +21,7 @@ pub struct SendDanmakuToLive {
     pub danmaku: LiveDanmaku,
 }
 
-impl ReqwestClient {
+impl Client {
     pub async fn send_danmaku_to_live(
         &self,
         business: SendDanmakuToLive,

@@ -1,4 +1,4 @@
-use crate::reqwest_client::{ClientError, ReqwestClient};
+use crate::reqwest_client::{ClientError, Client};
 
 pub mod login;
 pub mod send_danmaku_to_live;
@@ -7,12 +7,12 @@ pub trait Business {
     type Output;
     async fn execute_on(
         self,
-        client: &ReqwestClient,
+        client: &Client,
     ) -> Result<Self::Output, ClientError>;
 }
 
 
-impl ReqwestClient {
+impl Client {
     pub async fn execute<B: Business>(
         &self,
         business: B,

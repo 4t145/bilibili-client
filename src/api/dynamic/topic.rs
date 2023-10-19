@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{api::{CommonResp, Request}, reqwest_client::ReqwestClient};
+use crate::{api::{CommonResp, Request}, reqwest_client::Client};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DynamicTopicRequest<'r> {
@@ -8,7 +8,7 @@ pub struct DynamicTopicRequest<'r> {
     pub offset_dynamic_id: u64
 }
 
-impl ReqwestClient {
+impl Client {
     pub async fn dynamic_topic<'r>(&self, topic_name: &'r str, offset_dynamic_id: u64) -> crate::reqwest_client::ClientResult<DynamicTopicResponse> {
         self.send(&DynamicTopicRequest { topic_name, offset_dynamic_id }, crate::api::api_vc_url()).await?.into()
     }

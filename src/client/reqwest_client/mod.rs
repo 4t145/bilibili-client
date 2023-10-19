@@ -10,8 +10,8 @@ use std::{
 
 use crate::consts::AGENT;
 
-pub struct ReqwestClient {
-    client: reqwest::Client,
+pub struct Client {
+    pub(crate) client: reqwest::Client,
     cookie_store: Arc<dyn CookieStore + 'static>,
 }
 
@@ -86,7 +86,7 @@ impl LoginInfo {
     }
 }
 
-impl ReqwestClient {
+impl Client {
     pub fn new<C: CookieStore + 'static>(cookie_store: Arc<C>) -> Self {
         let mut default_hreaders = http::HeaderMap::new();
         default_hreaders.insert(http::header::USER_AGENT, AGENT.parse().unwrap());
@@ -94,7 +94,7 @@ impl ReqwestClient {
         client = client.cookie_provider(cookie_store.clone());
         let cookie_store = cookie_store as Arc<dyn CookieStore>;
         let client = client.build().unwrap();
-        ReqwestClient {
+        Client {
             client,
             cookie_store,
         }
@@ -122,14 +122,5 @@ impl ReqwestClient {
             };
         }
         login_info
-    }
-
-    pub async fn send<'r, R: crate::api::Request<'r>>(
-        &self,
-        req: &'r R,
-        base: &Url,
-    ) -> Result<R::Response, ClientError> {
-        let resp = crate::api::send(&self.client, base, req).await?;
-        Ok(resp)
     }
 }

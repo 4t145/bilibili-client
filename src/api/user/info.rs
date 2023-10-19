@@ -8,7 +8,7 @@ use crate::api::CommonResp;
 use crate::api::Request;
 use crate::api::RequestParts;
 use crate::reqwest_client::ClientError;
-use crate::reqwest_client::ReqwestClient;
+use crate::reqwest_client::Client;
 
 impl<'r> Request<'r> for UserInfoRequest {
     type Body = ();
@@ -25,7 +25,7 @@ impl<'r> Request<'r> for UserInfoRequest {
 }
 
 
-impl ReqwestClient {
+impl Client {
     pub async fn user_info(
         &self,
         request: &UserInfoRequest,

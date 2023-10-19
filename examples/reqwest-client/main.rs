@@ -51,7 +51,7 @@ impl LoginByQrCode for FileLogin {
 #[tokio::main]
 async fn main() {
     let jar = Arc::new(cookie::Jar::default());
-    let reqwest_client = ReqwestClient::new(jar.clone());
+    let reqwest_client = Client::new(jar.clone());
     let loginer = FileLogin::new("qr.svg");
     let login = reqwest_client
         .qr_login(loginer)

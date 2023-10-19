@@ -1,6 +1,6 @@
 use crate::{
     api::{content_type::Json, CommonResp, Request},
-    reqwest_client::ReqwestClient,
+    reqwest_client::Client,
 };
 use serde::{Deserialize, Serialize};
 
@@ -72,7 +72,7 @@ impl<'r> Request<'r> for GetEmoticonsRequest {
     }
 }
 
-impl ReqwestClient {
+impl Client {
     pub async fn get_emoticons_pc(
         &self,
         room_id: u64,

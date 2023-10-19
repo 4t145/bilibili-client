@@ -1,9 +1,9 @@
 use crate::{
     api::{content_type::Form, passport_url, Request, RequestParts},
-    reqwest_client::{ClientResult, ReqwestClient},
+    reqwest_client::{ClientResult, Client},
 };
 
-impl ReqwestClient {
+impl Client {
     pub async fn get_login_url(&self) -> ClientResult<GetLoginUrlResp> {
         self.send(&GetLoginUrlRequest, passport_url()).await
     }

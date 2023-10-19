@@ -5,7 +5,7 @@ use crate::api::Request;
 use crate::api::RequestParts;
 use crate::api::api_vc_url;
 use crate::reqwest_client::ClientError;
-use crate::reqwest_client::ReqwestClient;
+use crate::reqwest_client::Client;
 
 pub struct UserCards;
 
@@ -32,7 +32,7 @@ impl<'r> Request<'r> for UserCardsRequest<'r> {
     }
 }
 
-impl ReqwestClient {
+impl Client {
     pub async fn user_cards<'r>(&self, uids: &'r [u64]) -> Result<(), ClientError> {
         self.send(&UserCardsRequest { uids }, api_vc_url()).await?.into()
     }

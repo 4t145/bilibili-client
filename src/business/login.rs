@@ -1,6 +1,6 @@
 use crate::{
     api::passport::qrcode::GetLoginInfoRespData,
-    reqwest_client::{ClientError, ReqwestClient},
+    reqwest_client::{ClientError, Client},
 };
 
 use super::Business;
@@ -9,7 +9,7 @@ pub struct QrLogin<L>(pub L);
 
 impl<L: LoginByQrCode> Business for QrLogin<L> {
     type Output = String;
-    async fn execute_on(self, client: &ReqwestClient) -> Result<Self::Output, ClientError> {
+    async fn execute_on(self, client: &Client) -> Result<Self::Output, ClientError> {
         login(self.0, client).await
     }
 }
@@ -27,7 +27,7 @@ pub trait LoginByQrCode {
     async fn next_poll(&mut self);
 }
 
-impl ReqwestClient {
+impl Client {
     pub async fn qr_login<L: LoginByQrCode>(&self, loginer: L) -> Result<String, ClientError> {
         self.execute(QrLogin(loginer)).await
     }
@@ -40,7 +40,7 @@ impl ReqwestClient {
 
 async fn login<L: LoginByQrCode>(
     mut loginer: L,
-    client: &ReqwestClient,
+    client: &Client,
 ) -> Result<String, ClientError> {
     let resp = client.get_login_url().await?;
     loginer.update_code(&resp.data.url).await;

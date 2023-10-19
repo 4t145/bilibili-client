@@ -24,7 +24,7 @@ impl<T> From<CommonResp<T>> for Result<T, ClientError> {
     }
 }
 
-use crate::reqwest_client::ClientError;
+use crate::reqwest_client::{ClientError, Client};
 use std::collections::HashMap;
 
 use http::{header::IntoHeaderName, HeaderMap, HeaderValue};
@@ -178,6 +178,16 @@ pub(crate) async fn send<'r, R: Request<'r>>(
     resp.json().await
 }
 
+impl Client {
+    pub async fn send<'r, R: crate::api::Request<'r>>(
+        &self,
+        req: &'r R,
+        base: &Url,
+    ) -> Result<R::Response, ClientError> {
+        let resp = crate::api::send(&self.client, base, req).await?;
+        Ok(resp)
+    }
+}
 macro_rules! static_url {
     {$id: ident: $url:expr} => {
         pub fn $id() -> &'static Url {

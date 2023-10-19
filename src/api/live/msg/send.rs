@@ -1,6 +1,6 @@
 use crate::{
     api::{content_type::Form, /* CommonResp, */ CommonResp, Request},
-    reqwest_client::{ClientResult, ReqwestClient},
+    reqwest_client::{ClientResult, Client},
 };
 use serde::{Deserialize, Serialize};
 
@@ -44,7 +44,7 @@ pub enum LiveSendRespData {
     Object,
 }
 
-impl ReqwestClient {
+impl Client {
     pub async fn live_send(&self, send_req: LiveSendReq<'_>) -> ClientResult<()> {
         self.send(&send_req, crate::api::api_live_url())
             .await?
