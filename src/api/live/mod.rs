@@ -2,4 +2,5 @@
 pub mod msg;
 pub mod emoticon;
 pub mod room_play_info;
+pub mod room_play_url;
 pub mod danmu_info;
