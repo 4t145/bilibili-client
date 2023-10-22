@@ -11,10 +11,3 @@ pub mod business;
 // re-export
 pub use client::*;
 pub use reqwest;
-// pub mod transaction;
-#[cfg(features = "grpc")]
-#[allow(clippy::all, non_snake_case)]
-/// 这里的代码由tonic自动生成
-pub mod grpc;
-
-pub mod utils;

@@ -3,17 +3,7 @@ name = "bilibili-client"
 version = "0.1.0"
 edition = "2021"
 
-
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-# [dependencies.reqwest]
-# version = "0.11.11"
-# features = ["json", "multipart", "cookies"]
-
-# [dependencies.tokio]
-# version = "^1.19"
-# features = ["sync"]
 
 [dependencies.serde_json]
 version = "1"
@@ -22,47 +12,18 @@ version = "1"
 version = "1"
 features = ["derive"]
 
-# optional = true
-
 [dependencies]
-rand = "0.8.5"
 reqwest = {version="0.11", features=["json", "cookies"]}
-# cookie_store = "0.18.0"
-# reqwest_cookie_store = "0.3.0"
-expire = "0.1.2"
 http = "0.2.8"
-urlencoding = "2.1.2"
-tonic = "0.9.2"
-prost = "0.11.9"
-prost-types = "0.11.9"
-base64 = "0.21.2"
-chrono = "0.4.26"
-md5 = "0.7.0"
 cookie = { version = "0.18.0", features = ["percent-encoding"] }
-[dependencies.awc]
-version = "3.1.0"
+rand = "0.8.5"
 
 [dev-dependencies]
 toml = "0.8.2"
-
-[dev-dependencies.qrcode]
-version = "0.12"
-[dev-dependencies.image]
-version = "0.24"
-# default-features = false
-
+qrcode = "0.12"
+image = "0.24"
 [dev-dependencies.tokio]
 version = "^1.19"
 features = ["sync", "rt", "rt-multi-thread", "macros", "fs", "process"]
 
-[dev-dependencies.actix-web]
-version = "4.2.1"
-
-[[example]]
-name = "reqwest_client"
-path = "/examples/reqwest-client"
-
-[build-dependencies]
-tonic-build = "0.9.2"
-walkdir = "2.3.3"
 
