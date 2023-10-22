@@ -11,7 +11,6 @@ pub trait Business {
     ) -> Result<Self::Output, ClientError>;
 }
 
-
 impl Client {
     pub async fn execute<B: Business>(
         &self,

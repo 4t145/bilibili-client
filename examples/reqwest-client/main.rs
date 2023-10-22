@@ -18,6 +18,7 @@ impl FileLogin {
         Self { file: file.into() }
     }
 }
+
 impl LoginByQrCode for FileLogin {
     async fn update_code(&mut self, url: &str) {
         let code = QrCode::new(url).unwrap();
