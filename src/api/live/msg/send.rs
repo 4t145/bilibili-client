@@ -1,6 +1,6 @@
 use crate::{
     api::{content_type::Form, /* CommonResp, */ CommonResp, Request},
-    reqwest_client::{ClientResult, Client},
+    reqwest_client::{Client, ClientResult},
 };
 use serde::{Deserialize, Serialize};
 

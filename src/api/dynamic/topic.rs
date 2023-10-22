@@ -1,16 +1,31 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{api::{CommonResp, Request}, reqwest_client::Client};
+use crate::{
+    api::{CommonResp, Request},
+    reqwest_client::Client,
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DynamicTopicRequest<'r> {
     pub topic_name: &'r str,
-    pub offset_dynamic_id: u64
+    pub offset_dynamic_id: u64,
 }
 
 impl Client {
-    pub async fn dynamic_topic<'r>(&self, topic_name: &'r str, offset_dynamic_id: u64) -> crate::reqwest_client::ClientResult<DynamicTopicResponse> {
-        self.send(&DynamicTopicRequest { topic_name, offset_dynamic_id }, crate::api::api_vc_url()).await?.into()
+    pub async fn dynamic_topic<'r>(
+        &self,
+        topic_name: &'r str,
+        offset_dynamic_id: u64,
+    ) -> crate::reqwest_client::ClientResult<DynamicTopicResponse> {
+        self.send(
+            &DynamicTopicRequest {
+                topic_name,
+                offset_dynamic_id,
+            },
+            crate::api::api_vc_url(),
+        )
+        .await?
+        .into()
     }
 }
 
@@ -36,7 +51,7 @@ impl<'r> Request<'r> for DynamicTopicRequest<'r> {
 pub struct DynamicTopicResponse {
     pub has_more: u8,
     pub cards: Vec<CardItem>,
-    pub offset: String
+    pub offset: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -56,7 +71,7 @@ pub struct Desc {
     pub rid: i64,
     pub acl: i64,
     pub view: i64,
-    pub repost: i64,                                                                                                                                                        
+    pub repost: i64,
     pub comment: i64,
     pub like: i64,
     pub is_liked: i64,

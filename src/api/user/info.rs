@@ -1,4 +1,3 @@
-
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -7,8 +6,8 @@ use crate::api::api_url;
 use crate::api::CommonResp;
 use crate::api::Request;
 use crate::api::RequestParts;
-use crate::reqwest_client::ClientError;
 use crate::reqwest_client::Client;
+use crate::reqwest_client::ClientError;
 
 impl<'r> Request<'r> for UserInfoRequest {
     type Body = ();
@@ -23,7 +22,6 @@ impl<'r> Request<'r> for UserInfoRequest {
         RequestParts::query_from_request(self)
     }
 }
-
 
 impl Client {
     pub async fn user_info(

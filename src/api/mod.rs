@@ -24,7 +24,7 @@ impl<T> From<CommonResp<T>> for Result<T, ClientError> {
     }
 }
 
-use crate::reqwest_client::{ClientError, Client};
+use crate::reqwest_client::{Client, ClientError};
 use std::collections::HashMap;
 
 use http::{header::IntoHeaderName, HeaderMap, HeaderValue};

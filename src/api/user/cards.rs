@@ -1,11 +1,11 @@
 use serde::Serialize;
 
+use crate::api::api_vc_url;
 use crate::api::CommonResp;
 use crate::api::Request;
 use crate::api::RequestParts;
-use crate::api::api_vc_url;
-use crate::reqwest_client::ClientError;
 use crate::reqwest_client::Client;
+use crate::reqwest_client::ClientError;
 
 pub struct UserCards;
 
@@ -34,7 +34,9 @@ impl<'r> Request<'r> for UserCardsRequest<'r> {
 
 impl Client {
     pub async fn user_cards<'r>(&self, uids: &'r [u64]) -> Result<(), ClientError> {
-        self.send(&UserCardsRequest { uids }, api_vc_url()).await?.into()
+        self.send(&UserCardsRequest { uids }, api_vc_url())
+            .await?
+            .into()
     }
 }
 

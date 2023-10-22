@@ -1,7 +1,11 @@
 #![feature(async_fn_in_trait)]
 use std::{path::PathBuf, sync::Arc};
 
-use bilibili_client::{business::login::LoginByQrCode, reqwest_client::*, api::live::room_play_url::{RoomPlayUrlRequest, StreamPlatform, StreamQuality}};
+use bilibili_client::{
+    api::live::room_play_url::{RoomPlayUrlRequest, StreamPlatform, StreamQuality},
+    business::login::LoginByQrCode,
+    reqwest_client::*,
+};
 use qrcode::{render::svg::Color, QrCode};
 use reqwest::cookie;
 use tokio::{fs, io::AsyncWriteExt};
@@ -62,19 +66,24 @@ async fn main() {
         client.set_login_info(&login_info);
     } else {
         let loginer = FileLogin::new("qr.svg");
-        let login = client
-            .qr_login(loginer)
-            .await
-            .expect("fail to login");
+        let login = client.qr_login(loginer).await.expect("fail to login");
         println!("login: {:?}", login);
         let login_info = client.get_login_info_from_cookie();
         let mut cookie_file = fs::File::create(config_file).await.expect("fail to save");
-        cookie_file.write_all(toml::to_string(&login_info).expect("cant save cookie as toml file").as_bytes()).await.expect("fail to write cookie to file");
-
+        cookie_file
+            .write_all(
+                toml::to_string(&login_info)
+                    .expect("cant save cookie as toml file")
+                    .as_bytes(),
+            )
+            .await
+            .expect("fail to write cookie to file");
     }
     let cookie = client.get_login_info_from_cookie();
     println!("cookie: {:?}", cookie);
-    let request = RoomPlayUrlRequest::new(851181).platform(StreamPlatform::H5).qn(StreamQuality::BlueLight);
+    let request = RoomPlayUrlRequest::new(851181)
+        .platform(StreamPlatform::H5)
+        .qn(StreamQuality::BlueLight);
     let play_url = client.get_room_play_url(&request).await.unwrap();
     dbg!(&play_url);
     let room_play_info = client.get_room_play_info(851181).await.unwrap();

@@ -1,7 +1,10 @@
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
-use crate::{api::{Request, CommonResp}, reqwest_client::Client};
+use crate::{
+    api::{CommonResp, Request},
+    reqwest_client::Client,
+};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Host {
@@ -49,7 +52,18 @@ impl<'r> Request<'r> for GetDanmuInfoRequest {
 }
 
 impl Client {
-    pub async fn get_danmu_info(&self, room_id: u64) -> crate::reqwest_client::ClientResult<DanmuInfoData> {
-        self.send(&GetDanmuInfoRequest { id: room_id, r#type: 0 }, crate::api::api_live_url()).await?.into()
+    pub async fn get_danmu_info(
+        &self,
+        room_id: u64,
+    ) -> crate::reqwest_client::ClientResult<DanmuInfoData> {
+        self.send(
+            &GetDanmuInfoRequest {
+                id: room_id,
+                r#type: 0,
+            },
+            crate::api::api_live_url(),
+        )
+        .await?
+        .into()
     }
 }

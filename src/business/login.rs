@@ -1,6 +1,6 @@
 use crate::{
     api::passport::qrcode::GetLoginInfoRespData,
-    reqwest_client::{ClientError, Client},
+    reqwest_client::{Client, ClientError},
 };
 
 use super::Business;
@@ -38,10 +38,7 @@ impl Client {
     }
 }
 
-async fn login<L: LoginByQrCode>(
-    mut loginer: L,
-    client: &Client,
-) -> Result<String, ClientError> {
+async fn login<L: LoginByQrCode>(mut loginer: L, client: &Client) -> Result<String, ClientError> {
     let resp = client.get_login_url().await?;
     loginer.update_code(&resp.data.url).await;
     let mut oauth_key = resp.data.oauth_key;

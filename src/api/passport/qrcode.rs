@@ -1,6 +1,6 @@
 use crate::{
     api::{content_type::Form, passport_url, Request, RequestParts},
-    reqwest_client::{ClientResult, Client},
+    reqwest_client::{Client, ClientResult},
 };
 
 impl Client {
@@ -8,10 +8,10 @@ impl Client {
         self.send(&GetLoginUrlRequest, passport_url()).await
     }
     pub async fn get_login_info(&self, oauth_key: &str) -> ClientResult<GetLoginInfoResp> {
-        self.send(&GetLoginInfoRequest { oauth_key }, passport_url()).await
+        self.send(&GetLoginInfoRequest { oauth_key }, passport_url())
+            .await
     }
 }
-
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

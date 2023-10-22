@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{api::{Request, CommonResp}, reqwest_client::Client};
+use crate::{
+    api::{CommonResp, Request},
+    reqwest_client::Client,
+};
 
 #[derive(Serialize)]
 pub struct GetRoomPlayInfoRequest {
@@ -12,7 +15,6 @@ pub struct RoomPlayInfo {
     pub room_id: u64,
     pub uid: u64,
 }
-
 
 impl<'r> Request<'r> for GetRoomPlayInfoRequest {
     type Body = ();
@@ -33,7 +35,15 @@ impl<'r> Request<'r> for GetRoomPlayInfoRequest {
 }
 
 impl Client {
-    pub async fn get_room_play_info(&self, room_id: u64) -> crate::reqwest_client::ClientResult<RoomPlayInfo> {
-        self.send(&GetRoomPlayInfoRequest { room_id }, crate::api::api_live_url()).await?.into()
+    pub async fn get_room_play_info(
+        &self,
+        room_id: u64,
+    ) -> crate::reqwest_client::ClientResult<RoomPlayInfo> {
+        self.send(
+            &GetRoomPlayInfoRequest { room_id },
+            crate::api::api_live_url(),
+        )
+        .await?
+        .into()
     }
 }
