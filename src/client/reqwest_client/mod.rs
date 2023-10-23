@@ -109,6 +109,10 @@ impl Client {
         }
     }
 
+    pub fn inner(&self) -> reqwest::Client {
+        self.client.clone()
+    }
+    
     pub fn set_login_info(&self, login_info: &LoginInfo) {
         login_info.resgiter(self.cookie_store.as_ref());
     }
