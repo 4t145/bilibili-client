@@ -1,7 +1,7 @@
 use crate::reqwest_client::{Client, ClientError};
-#[cfg(login)]
+#[cfg(feature = "login")]
 pub mod login;
-#[cfg(send_danmaku)]
+#[cfg(feature = "send_danmaku")]
 pub mod send_danmaku_to_live;
 
 pub trait Business {

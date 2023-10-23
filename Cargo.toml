@@ -12,8 +12,8 @@ dynamic = []
 live = []
 passport = []
 user = []
-login = []
-send_danmaku = []
+login = ["passport"]
+send_danmaku = ["live"]
 
 [dependencies.serde_json]
 version = "1"
@@ -37,3 +37,6 @@ version = "^1.19"
 features = ["sync", "rt", "rt-multi-thread", "macros", "fs", "process"]
 
 
+[[example]]
+name = "reqwest-client"
+features = []

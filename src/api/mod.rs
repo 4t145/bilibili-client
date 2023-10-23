@@ -1,10 +1,10 @@
-#[cfg(dynamic)]
+#[cfg(feature = "dynamic")]
 pub mod dynamic;
-#[cfg(live)]
+#[cfg(feature = "live")]
 pub mod live;
-#[cfg(passport)]
+#[cfg(feature = "passport")]
 pub mod passport;
-#[cfg(user)]
+#[cfg(feature = "user")]
 pub mod user;
 use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]

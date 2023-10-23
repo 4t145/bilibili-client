@@ -25,6 +25,15 @@ pub enum ClientError {
 
 pub type ClientResult<T> = Result<T, ClientError>;
 
+impl Default for Client {
+    fn default() -> Self {
+        Self {
+            client: Default::default(),
+            cookie_store: Arc::new(reqwest::cookie::Jar::default()),
+        }
+    }
+}
+
 impl From<serde_json::Error> for ClientError {
     fn from(e: serde_json::Error) -> Self {
         ClientError::SerJson(e)
