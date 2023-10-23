@@ -4,6 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["api", "business"]
+api = ["dynamic", "live", "passport", "user"]
+business = ["login", "send_danmaku"]
+dynamic = []
+live = []
+passport = []
+user = []
+login = []
+send_danmaku = []
 
 [dependencies.serde_json]
 version = "1"

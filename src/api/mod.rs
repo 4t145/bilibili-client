@@ -1,6 +1,10 @@
+#[cfg(dynamic)]
 pub mod dynamic;
+#[cfg(live)]
 pub mod live;
+#[cfg(passport)]
 pub mod passport;
+#[cfg(user)]
 pub mod user;
 use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
