@@ -17,7 +17,13 @@ pub struct CommonResp<T> {
 impl<T> From<CommonResp<T>> for Result<T, ClientError> {
     fn from(resp: CommonResp<T>) -> Self {
         if let Some(data) = resp.data {
-            debug_assert!(resp.code == 0);
+            if resp.code != 0 {
+                log::info!(
+                    "response code is not zero: {}, message: {}",
+                    resp.code,
+                    resp.message.as_deref().unwrap_or_default()
+                );
+            }
             Ok(data)
         } else {
             Err(ClientError::Fail {
