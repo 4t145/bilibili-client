@@ -189,7 +189,7 @@ pub(crate) async fn send<'r, R: Request<'r>>(
 }
 
 impl Client {
-    #[tracing::instrument(skip(self), ret(Debug))]
+    #[tracing::instrument(skip(self), ret(Debug, level = tracing::Level::DEBUG), err(Debug, level = tracing::Level::WARN))]
     pub async fn send<'r, R: crate::api::Request<'r>>(
         &self,
         req: &'r R,
