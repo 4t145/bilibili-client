@@ -13,7 +13,7 @@ impl Client {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginUrlResp {
     pub code: i64,
@@ -21,13 +21,13 @@ pub struct GetLoginUrlResp {
     pub data: GetLoginUrlRespData,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginUrlRespData {
     pub url: String,
     pub oauth_key: String,
 }
-
+#[derive(Debug)]
 pub struct GetLoginUrlRequest;
 impl Request<'static> for GetLoginUrlRequest {
     type Body = ();
@@ -47,7 +47,7 @@ impl Request<'static> for GetLoginUrlRequest {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginInfoRequest<'r> {
     pub(crate) oauth_key: &'r str,
@@ -71,14 +71,14 @@ impl<'r> Request<'r> for GetLoginInfoRequest<'r> {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GetLoginInfoResp {
     pub message: Option<String>,
     pub data: GetLoginInfoRespData,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum GetLoginInfoRespData {
     Code(i8),

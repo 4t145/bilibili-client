@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// 推荐使用表单方法提交
 pub struct GetEmoticons;
 
-#[derive(Serialize, Clone, Copy)]
+#[derive(Serialize, Clone, Copy, Debug)]
 pub struct GetEmoticonsRequest {
     pub room_id: u64,
     pub platform: &'static str,

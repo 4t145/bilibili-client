@@ -5,12 +5,12 @@ use crate::{
     reqwest_client::Client,
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct GetRoomPlayInfoRequest {
     pub room_id: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct RoomPlayInfo {
     pub room_id: u64,
     pub uid: u64,

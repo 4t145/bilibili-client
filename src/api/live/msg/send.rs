@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 pub struct LiveSend;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct LiveSendReq<'r> {
     pub roomid: u64,
     pub msg: &'r str,

@@ -28,6 +28,7 @@ http = "0.2.8"
 cookie = { version = "0.18.0", features = ["percent-encoding"] }
 rand = "0.8.5"
 log = "0.4.20"
+tracing = "0.1.40"
 
 [dev-dependencies]
 toml = "0.8.2"

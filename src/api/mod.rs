@@ -129,11 +129,11 @@ pub mod content_type {
     }
 }
 
-pub trait Request<'r> {
+pub trait Request<'r>: std::fmt::Debug {
     type Body: Serialize + 'r;
     type Query: Serialize + 'r;
     type ContentType: ContentType;
-    type Response: for<'de> Deserialize<'de>;
+    type Response: for<'de> Deserialize<'de> + std::fmt::Debug;
 
     const METHOD: http::Method;
     const PATH: &'static str;
@@ -189,6 +189,7 @@ pub(crate) async fn send<'r, R: Request<'r>>(
 }
 
 impl Client {
+    #[tracing::instrument(skip(self), ret(Debug))]
     pub async fn send<'r, R: crate::api::Request<'r>>(
         &self,
         req: &'r R,
