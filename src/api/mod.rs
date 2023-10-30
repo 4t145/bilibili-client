@@ -14,12 +14,12 @@ pub struct CommonResp<T> {
     pub data: Option<T>,
 }
 
-impl<T> From<CommonResp<T>> for Result<T, ClientError> {
+impl<T: std::fmt::Debug> From<CommonResp<T>> for Result<T, ClientError> {
     fn from(resp: CommonResp<T>) -> Self {
         if let Some(data) = resp.data {
             if resp.code != 0 {
                 tracing::info!(
-                    "response code is not zero: {}, message: {}",
+                    "response code is not zero: {}, message: {}, data: {data:?}",
                     resp.code,
                     resp.message.as_deref().unwrap_or_default()
                 );
@@ -189,18 +189,16 @@ pub(crate) async fn send<'r, R: Request<'r>>(
 }
 
 impl Client {
-    #[tracing::instrument(skip(self), ret(Debug, level = tracing::Level::DEBUG), err(Debug, level = tracing::Level::WARN))]
+    // #[tracing::instrument(skip(self), ret(Debug, level = tracing::Level::DEBUG), err(Debug, level = tracing::Level::WARN), level="debug")]
     pub async fn send<'r, R: crate::api::Request<'r>>(
         &self,
         req: &'r R,
         base: &Url,
     ) -> Result<R::Response, ClientError> {
-        tracing::span!(tracing::Level::DEBUG, "send", ?req, ?base)
-            .in_scope(|| async {
-                let resp = crate::api::send(&self.client, base, req).await?;
-                Ok(resp)
-            })
-            .await
+        tracing::debug!("start send");
+        let resp = crate::api::send(&self.client, base, req).await?;
+        tracing::debug!("finish send: {resp:?}");
+        Ok(resp)
     }
 }
 macro_rules! static_url {
