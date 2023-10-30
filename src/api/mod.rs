@@ -18,7 +18,7 @@ impl<T> From<CommonResp<T>> for Result<T, ClientError> {
     fn from(resp: CommonResp<T>) -> Self {
         if let Some(data) = resp.data {
             if resp.code != 0 {
-                log::info!(
+                tracing::info!(
                     "response code is not zero: {}, message: {}",
                     resp.code,
                     resp.message.as_deref().unwrap_or_default()
@@ -195,8 +195,12 @@ impl Client {
         req: &'r R,
         base: &Url,
     ) -> Result<R::Response, ClientError> {
-        let resp = crate::api::send(&self.client, base, req).await?;
-        Ok(resp)
+        tracing::span!(tracing::Level::DEBUG, "send", ?req, ?base)
+            .in_scope(|| async {
+                let resp = crate::api::send(&self.client, base, req).await?;
+                Ok(resp)
+            })
+            .await
     }
 }
 macro_rules! static_url {
