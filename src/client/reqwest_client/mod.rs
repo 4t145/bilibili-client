@@ -8,7 +8,7 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-use crate::{consts::AGENT, utils::buvid3};
+use crate::{consts::AGENT, utils};
 
 #[derive(Clone)]
 pub struct Client {
@@ -93,8 +93,10 @@ impl LoginInfo {
         );
         headers.extend(self.sess_data.as_deref().map(item("SESSDATA")));
         headers.extend(self.bili_jct.as_deref().map(item("bili_jct")));
-        let buvid3 = buvid3();
+        let buvid3 = utils::buvid3();
         headers.push(item("buvid3")(self.bili_jct.as_deref().unwrap_or(&buvid3)));
+        let uuid = utils::buvid3();
+        headers.push(item("_uuid")(&uuid));
         headers.extend(self.ext.iter().map(|(k, v)| item(k)(v)));
         cookie_store.set_cookies(&mut headers.iter(), bilibili_url());
     }
