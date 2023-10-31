@@ -8,7 +8,7 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-use crate::consts::AGENT;
+use crate::{consts::AGENT, utils::buvid3};
 
 #[derive(Clone)]
 pub struct Client {
@@ -58,6 +58,8 @@ pub struct LoginInfo {
     pub sess_data: Option<String>,
     #[serde(rename = "bili_jct")]
     pub bili_jct: Option<String>,
+    #[serde(rename = "buvid3")]
+    pub buvid3: Option<String>,
     #[serde(flatten)]
     pub ext: HashMap<String, String>,
 }
@@ -91,6 +93,8 @@ impl LoginInfo {
         );
         headers.extend(self.sess_data.as_deref().map(item("SESSDATA")));
         headers.extend(self.bili_jct.as_deref().map(item("bili_jct")));
+        let buvid3 = buvid3();
+        headers.push(item("buvid3")(self.bili_jct.as_deref().unwrap_or(&buvid3)));
         headers.extend(self.ext.iter().map(|(k, v)| item(k)(v)));
         cookie_store.set_cookies(&mut headers.iter(), bilibili_url());
     }

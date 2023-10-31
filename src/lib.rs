@@ -11,3 +11,5 @@ pub mod model;
 // re-export
 pub use client::*;
 pub use reqwest;
+
+pub mod utils;
