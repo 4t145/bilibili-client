@@ -68,7 +68,12 @@ static BILIBILI_URL: OnceLock<Url> = OnceLock::new();
 pub(crate) fn bilibili_url() -> &'static Url {
     BILIBILI_URL.get_or_init(|| Url::parse("https://bilibili.com").expect("invalid bilibli url"))
 }
-
+fn item<'a>(key: &'a str) -> impl Fn(&'a str) -> HeaderValue {
+    move |value| {
+        HeaderValue::from_str(&format!("{}={}", key, value))
+            .expect("invalid header value in LoginInfo")
+    }
+}
 impl LoginInfo {
     pub fn is_login(&self) -> bool {
         self.dede_user_id.is_some()
@@ -78,12 +83,7 @@ impl LoginInfo {
     }
     pub fn resgiter<C: CookieStore + ?Sized>(&self, cookie_store: &C) {
         let mut headers = vec![];
-        fn item<'a>(key: &'a str) -> impl Fn(&'a str) -> HeaderValue {
-            move |value| {
-                HeaderValue::from_str(&format!("{}={}", key, value))
-                    .expect("invalid header value in LoginInfo")
-            }
-        }
+
         headers.extend(self.dede_user_id.as_deref().map(item("DedeUserID")));
         headers.extend(self.sid.as_deref().map(item("sid")));
         headers.extend(
@@ -93,8 +93,8 @@ impl LoginInfo {
         );
         headers.extend(self.sess_data.as_deref().map(item("SESSDATA")));
         headers.extend(self.bili_jct.as_deref().map(item("bili_jct")));
-        let buvid3 = utils::buvid3();
-        headers.push(item("buvid3")(self.bili_jct.as_deref().unwrap_or(&buvid3)));
+        // headers.push(item("buvid3")(self.bili_jct.as_deref().unwrap_or(&buvid3)));
+        // let uuid = utils::buvid3();
         let uuid = utils::buvid3();
         headers.push(item("_uuid")(&uuid));
         headers.extend(self.ext.iter().map(|(k, v)| item(k)(v)));
@@ -138,9 +138,18 @@ impl Client {
                 "SESSDATA" => login_info.sess_data.replace(value.to_owned()),
                 "bili_jct" => login_info.bili_jct.replace(value.to_owned()),
                 "sid" => login_info.sid.replace(value.to_owned()),
+                "buvid3" =>login_info.buvid3.replace(value.to_owned()),
                 _ => login_info.ext.insert(name.to_string(), value.to_owned()),
             };
         }
         login_info
+    }
+
+    pub async fn get_and_set_fp(&self) -> ClientResult<()> {
+        let fp = self.get_finger().await?;
+        let headers = [item("buvid3")(&fp.b_3), item("buvid4")(&fp.b_4)];
+        self.cookie_store
+            .set_cookies(&mut headers.iter(), bilibili_url());
+        Ok(())
     }
 }

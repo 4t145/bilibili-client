@@ -7,6 +7,8 @@ pub mod passport;
 #[cfg(feature = "user")]
 pub mod user;
 use serde::Deserialize;
+
+pub mod fp;
 #[derive(Deserialize, Debug, Clone)]
 pub struct CommonResp<T> {
     pub code: i32,
